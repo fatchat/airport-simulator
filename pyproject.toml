@@ -1,0 +1,11 @@
+[project]
+name = "airport-simulator"
+version = "0.1.0"
+description = "A simulator for airport operations, including flight scheduling, gate management, and passenger handling."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.1.1",
+    "paho-mqtt>=2.1.0",
+    "redis>=6.2.0",
+]
