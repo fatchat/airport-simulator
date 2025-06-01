@@ -6,13 +6,14 @@ import threading
 import argparse
 from redis import Redis
 from flask import Flask, jsonify
+from flask_cors import CORS
 import paho.mqtt.client as mqtt
 from plane import Plane
 
 MQTT_BROKER = "localhost"
-HEARTBEAT_INTERVAL = 1  # seconds
+REDIS_BROKER = "localhost"
 
-redis_client = Redis(host="localhost", port=6379)
+redis_client = Redis(host=REDIS_BROKER, port=6379)
 
 
 class Sky:
@@ -95,6 +96,7 @@ else:
 
 state_lock = threading.Lock()
 app = Flask("Sky")
+CORS(app)
 
 
 @app.route("/state")

@@ -6,13 +6,14 @@ import threading
 import argparse
 from redis import Redis
 from flask import Flask, jsonify
+from flask_cors import CORS
 import paho.mqtt.client as mqtt
 from plane import Plane
 
 MQTT_BROKER = "localhost"
-HEARTBEAT_INTERVAL = 1  # seconds
+REDIS_BROKER = "localhost"
 
-redis_client = Redis(host="localhost", port=6379)
+redis_client = Redis(host=REDIS_BROKER, port=6379)
 
 
 class Gate:
@@ -28,6 +29,10 @@ class Gate:
         topic = f"gate/{gate_number}"
         self.client.subscribe(topic)
         self.client.message_callback_add(topic, self.receive_plane)
+
+        self.client.on_disconnect = lambda client, userdata, rc: client.publish(
+            "runway", json.dumps({"state": "closed", "gate_number": gate_number})
+        )
 
         self.client.subscribe("heartbeat")
         self.client.message_callback_add("heartbeat", self.on_heartbeat)
@@ -117,6 +122,7 @@ else:
 
 state_lock = threading.Lock()
 app = Flask(f"Gate {args.gate_number}")
+CORS(app)
 
 
 @app.route("/state")

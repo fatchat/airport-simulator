@@ -6,13 +6,14 @@ import argparse
 import threading
 from redis import Redis
 from flask import Flask, jsonify
+from flask_cors import CORS
 import paho.mqtt.client as mqtt
 from plane import Plane
 
 MQTT_BROKER = "localhost"
-HEARTBEAT_INTERVAL = 1  # seconds
+REDIS_BROKER = "localhost"
 
-redis_client = Redis(host="localhost", port=6379)
+redis_client = Redis(host=REDIS_BROKER, port=6379)
 
 
 class Runway:
@@ -20,6 +21,9 @@ class Runway:
         """Runway listens for planes arriving and sends them to gates after 3 ticks."""
         self.current_plane = None
         self.free_gates = set()
+
+        self.RUNWAY_MIN_TICKS = 3  # Minimum ticks a plane stays on the runway
+        self.RUNWAY_MAX_TICKS = 10
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "Runway")
         self.client.connect(MQTT_BROKER)
@@ -61,7 +65,9 @@ class Runway:
         if not self.current_plane:
             with state_lock:
                 self.current_plane = Plane.from_dict(plane)
-                self.current_plane.ticks_on_runway = random.randint(2, 10)
+                self.current_plane.ticks_on_runway = random.randint(
+                    self.RUNWAY_MIN_TICKS, self.RUNWAY_MAX_TICKS
+                )
             self.client.publish(
                 "logs", f"[Runway] Plane {plane['plane_id']} arrived on runway"
             )
@@ -100,6 +106,13 @@ class Runway:
             self.client.publish("logs", f"[Runway] Gate {gate_number} is now free.")
             with state_lock:
                 self.free_gates.add(gate_number)
+        if gate_number and gate_update.get("state") == "closed":
+            if gate_number in self.free_gates:
+                self.client.publish(
+                    "logs", f"[Runway] Gate {gate_number} is now closed."
+                )
+                with state_lock:
+                    self.free_gates.remove(gate_number)
 
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
         """Handle heartbeat messages to advance the runway state."""
@@ -130,6 +143,7 @@ else:
 
 state_lock = threading.Lock()
 app = Flask("Runway")
+CORS(app)
 
 
 @app.route("/state")
