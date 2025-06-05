@@ -2,11 +2,8 @@
 
 import json
 import random
-import threading
 import argparse
 from redis import Redis
-from flask import Flask, jsonify
-from flask_cors import CORS
 import paho.mqtt.client as mqtt
 from plane import Plane
 
@@ -49,10 +46,9 @@ class Sky:
     def add_new_plane(self):
         """Add a new plane to the queue."""
         plane_id = f"plane_{self.next_plane_id}"
-        with state_lock:
-            self.next_plane_id += 1
-            plane = Plane(plane_id)
-            self.plane_queue.append(plane)
+        self.next_plane_id += 1
+        plane = Plane(plane_id)
+        self.plane_queue.append(plane)
         self.client.publish(
             "logs",
             f"[Sky] New plane added: {plane.plane_id} -> gate {plane.destination_gate}",
@@ -60,18 +56,17 @@ class Sky:
 
     def send_next_plane(self, client, userdata, msg):  # pylint:disable=unused-argument
         """runway requests next plane"""
-        with state_lock:
-            if self.plane_queue:
-                message = json.loads(msg.payload.decode())
-                if "gate_number" in message:
-                    plane: Plane = self.plane_queue.pop(0)
-                    plane.state = "on_runway"
-                    plane.destination_gate = message["gate_number"]
-                    self.client.publish("runway", json.dumps(plane.to_dict()))
-                    self.client.publish(
-                        "logs",
-                        f"[Sky] Sent plane {plane.plane_id} to runway; destination gate {plane.destination_gate}",
-                    )
+        if self.plane_queue:
+            message = json.loads(msg.payload.decode())
+            if "gate_number" in message:
+                plane: Plane = self.plane_queue.pop(0)
+                plane.state = "on_runway"
+                plane.destination_gate = message["gate_number"]
+                self.client.publish("runway", json.dumps(plane.to_dict()))
+                self.client.publish(
+                    "logs",
+                    f"[Sky] Sent plane {plane.plane_id} to runway; destination gate {plane.destination_gate}",
+                )
 
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
         """Handle heartbeat messages to add new planes."""
@@ -83,7 +78,6 @@ class Sky:
 
 
 parser = argparse.ArgumentParser(description="Gate Simulation")
-parser.add_argument("--http-port", type=int, default=5000, help="HTTP server port")
 args = parser.parse_args()
 
 saved_state = redis_client.get("sky")
@@ -94,31 +88,4 @@ if saved_state:
 else:
     sky = Sky()
 
-state_lock = threading.Lock()
-app = Flask("Sky")
-CORS(app)
-
-
-@app.route("/state")
-def get_state():
-    """HTTP endpoint to get the current state of the sky."""
-    with state_lock:
-        return jsonify(sky.to_dict())
-
-
-def start_http_server():
-    """Start the HTTP server to serve sky state."""
-    app.run(host="0.0.0.0", port=args.http_port, threaded=True)
-
-
-def start_mqtt_client():
-    """Start the MQTT client to handle sky operations."""
-    sky.client.loop_forever()
-
-
-if __name__ == "__main__":
-    mqtt_thread = threading.Thread(target=start_mqtt_client)
-    mqtt_thread.start()
-
-    http_thread = threading.Thread(target=start_http_server)
-    http_thread.start()
+sky.client.loop_forever()
