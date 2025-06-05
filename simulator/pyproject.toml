@@ -5,8 +5,6 @@ description = "A simulator for airport operations, including flight scheduling, 
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "flask>=3.1.1",
-    "flask-cors>=6.0.0",
     "paho-mqtt>=2.1.0",
     "redis>=6.2.0",
 ]
