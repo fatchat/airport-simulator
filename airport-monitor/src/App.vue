@@ -1,9 +1,10 @@
 <template>
   <main class="p-6 flex gap-4">
-    <Sky title="Sky" url="http://localhost:5004/state" />
-    <Runway title="Runway" url="http://localhost:5003/state" />
-    <Gate title="Gate" url="http://localhost:5001/state" />
-    <Gate title="Gate" url="http://localhost:5002/state" />
+    <Sky title="Sky" url="http://localhost:5001/state/sky" />
+    <Runway title="Runway" url="http://localhost:5001/state/runway" />
+    <Gate title="Gate" url="http://localhost:5001/state/gate?gate_number=A1" />
+    <Gate title="Gate" url="http://localhost:5001/state/gate?gate_number=A2" />
+    <Gate title="Gate" url="http://localhost:5001/state/gate?gate_number=B3" />
   </main>
 </template>
 

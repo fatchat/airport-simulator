@@ -3,10 +3,7 @@
 import random
 import json
 import argparse
-import threading
 from redis import Redis
-from flask import Flask, jsonify
-from flask_cors import CORS
 import paho.mqtt.client as mqtt
 from plane import Plane
 
@@ -63,11 +60,10 @@ class Runway:
         """Handle plane arrivals on the runway."""
         plane = json.loads(msg.payload.decode())
         if not self.current_plane:
-            with state_lock:
-                self.current_plane = Plane.from_dict(plane)
-                self.current_plane.ticks_on_runway = random.randint(
-                    self.RUNWAY_MIN_TICKS, self.RUNWAY_MAX_TICKS
-                )
+            self.current_plane = Plane.from_dict(plane)
+            self.current_plane.ticks_on_runway = random.randint(
+                self.RUNWAY_MIN_TICKS, self.RUNWAY_MAX_TICKS
+            )
             self.client.publish(
                 "logs", f"[Runway] Plane {plane['plane_id']} arrived on runway"
             )
@@ -80,23 +76,22 @@ class Runway:
 
     def advance_plane(self):
         """Advance the plane on the runway, check if it can be sent to a gate."""
-        with state_lock:
-            self.current_plane.ticks_on_runway -= 1
-            if self.current_plane.ticks_on_runway <= 0:
-                topic = f"gate/{self.current_plane.destination_gate}"
-                self.client.publish(topic, json.dumps(self.current_plane.to_dict()))
-                self.client.publish(
-                    "logs",
-                    f"[Runway] Sent plane {self.current_plane.plane_id} to gate "
-                    + f"{self.current_plane.destination_gate}",
-                )
-                self.current_plane = None
-            else:
-                self.client.publish(
-                    "logs",
-                    f"[Runway] Plane {self.current_plane.plane_id} still on runway, "
-                    + f"ticks: {self.current_plane.ticks_on_runway}",
-                )
+        self.current_plane.ticks_on_runway -= 1
+        if self.current_plane.ticks_on_runway <= 0:
+            topic = f"gate/{self.current_plane.destination_gate}"
+            self.client.publish(topic, json.dumps(self.current_plane.to_dict()))
+            self.client.publish(
+                "logs",
+                f"[Runway] Sent plane {self.current_plane.plane_id} to gate "
+                + f"{self.current_plane.destination_gate}",
+            )
+            self.current_plane = None
+        else:
+            self.client.publish(
+                "logs",
+                f"[Runway] Plane {self.current_plane.plane_id} still on runway, "
+                + f"ticks: {self.current_plane.ticks_on_runway}",
+            )
 
     def on_gate_update(self, client, userdata, msg):  # pylint:disable=unused-argument
         """Handle updates from gates, reset current plane if gate is free."""
@@ -104,15 +99,13 @@ class Runway:
         gate_number = gate_update.get("gate_number")
         if gate_number and gate_update.get("state") == "free":
             self.client.publish("logs", f"[Runway] Gate {gate_number} is now free.")
-            with state_lock:
-                self.free_gates.add(gate_number)
+            self.free_gates.add(gate_number)
         if gate_number and gate_update.get("state") == "closed":
             if gate_number in self.free_gates:
                 self.client.publish(
                     "logs", f"[Runway] Gate {gate_number} is now closed."
                 )
-                with state_lock:
-                    self.free_gates.remove(gate_number)
+                self.free_gates.remove(gate_number)
 
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
         """Handle heartbeat messages to advance the runway state."""
@@ -121,8 +114,7 @@ class Runway:
             self.advance_plane()
 
         if self.current_plane is None and len(self.free_gates) > 0:
-            with state_lock:
-                gate_number = self.free_gates.pop()
+            gate_number = self.free_gates.pop()
             self.client.publish(
                 "send_next_plane", json.dumps({"gate_number": gate_number})
             )
@@ -130,7 +122,6 @@ class Runway:
 
 
 parser = argparse.ArgumentParser(description="Gate Simulation")
-parser.add_argument("--http-port", type=int, default=5000, help="HTTP server port")
 args = parser.parse_args()
 
 saved_state = redis_client.get("runway")
@@ -141,31 +132,5 @@ if saved_state:
 else:
     runway = Runway()
 
-state_lock = threading.Lock()
-app = Flask("Runway")
-CORS(app)
 
-
-@app.route("/state")
-def get_state():
-    """HTTP endpoint to get the current state of the runway."""
-    with state_lock:
-        return jsonify(runway.to_dict())
-
-
-def start_http_server():
-    """Start the HTTP server to serve runway state."""
-    app.run(host="0.0.0.0", port=args.http_port, threaded=True)
-
-
-def start_mqtt_client():
-    """Start the MQTT client to handle runway operations."""
-    runway.client.loop_forever()
-
-
-if __name__ == "__main__":
-    mqtt_thread = threading.Thread(target=start_mqtt_client)
-    mqtt_thread.start()
-
-    http_thread = threading.Thread(target=start_http_server)
-    http_thread.start()
+runway.client.loop_forever()
