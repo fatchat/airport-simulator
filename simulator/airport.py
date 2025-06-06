@@ -44,12 +44,14 @@ class Airport:
         self.client.subscribe("heartbeat")
         self.client.message_callback_add("heartbeat", self.on_heartbeat)
 
-        self.logger = Logger(self.client, verbose=kwargs.get("verbose", False))
+        self.logger = Logger(
+            f"Airport {self.airport}", self.client, verbose=kwargs.get("verbose", False)
+        )
 
-        self.logger.log(f"[Airport {self.airport}] Initialized")
-        self.logger.log(f"[Airport {self.airport}] Runways: {self.runways}")
-        self.logger.log(f"[Airport {self.airport}] Gates: {self.gates}")
-        self.logger.log(f"[Airport {self.airport}] Waiting for planes...")
+        self.logger.log("Initialized")
+        self.logger.log(f"Runways: {self.runways}")
+        self.logger.log(f"Gates: {self.gates}")
+        self.logger.log("Waiting for planes...")
 
     def to_dict(self):
         """Convert the Airport instance to a dict representation."""
@@ -70,7 +72,7 @@ class Airport:
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
         """Handle heartbeat messages to update gate state."""
         redis_client.set(redis_key(self.airport), json.dumps(self.to_dict()))
-        self.logger.log(f"[Airport {self.airport}] Heartbeat received, state updated.")
+        self.logger.log("Heartbeat received, state updated.")
 
 
 # == main

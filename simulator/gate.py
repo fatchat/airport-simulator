@@ -44,9 +44,13 @@ class Gate:
         self.client.subscribe("heartbeat")
         self.client.message_callback_add("heartbeat", self.on_heartbeat)
 
-        self.logger = Logger(self.client, verbose=kwargs.get("verbose", False))
+        self.logger = Logger(
+            f"Gate {self.gate_number}",
+            self.client,
+            verbose=kwargs.get("verbose", False),
+        )
 
-        self.logger.log(f"[Gate {self.gate_number}] Initialized, waiting for planes...")
+        self.logger.log("Initialized, waiting for planes...")
 
     def to_dict(self):
         """Convert the Gate instance to a dict representation."""
@@ -74,7 +78,7 @@ class Gate:
             3, 5
         )  # Random time at gate between 3 and 5 ticks
         self.logger.log(
-            f"[Gate {self.gate_number}] Plane {self.current_plane.plane_id} has arrived; "
+            f"Plane {self.current_plane.plane_id} has arrived; "
             + f"time at gate: {self.current_plane.time_at_gate} ticks",
         )
 
@@ -86,14 +90,13 @@ class Gate:
         )
         if self.current_plane:
             self.logger.log(
-                f"[Gate {self.gate_number}] Holding plane {self.current_plane.plane_id} "
+                f"Holding plane {self.current_plane.plane_id} "
                 + f"for {self.current_plane.time_at_gate} ticks.",
             )
             self.current_plane.time_at_gate -= 1
             if self.current_plane.time_at_gate <= 0:
                 self.logger.log(
-                    f"[Gate {self.gate_number}] Plane {self.current_plane.plane_id} "
-                    + "has left the gate.",
+                    f"Plane {self.current_plane.plane_id} " + "has left the gate.",
                 )
                 self.current_plane = None
                 self.client.publish(
@@ -105,7 +108,7 @@ class Gate:
                 f"airport/{self.airport}/gate_updates",
                 json.dumps({"gate_number": self.gate_number, "state": "free"}),
             )
-            self.logger.log(f"[Gate {self.gate_number}] No plane at gate.")
+            self.logger.log("No plane at gate.")
 
 
 # == main

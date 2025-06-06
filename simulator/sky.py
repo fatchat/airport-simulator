@@ -26,8 +26,8 @@ class Sky:
         self.client.message_callback_add("heartbeat", self.on_heartbeat)
         self.client.message_callback_add("send_next_plane", self.send_next_plane)
 
-        self.logger = Logger(self.client, verbose=kwargs.get("verbose", False))
-        self.logger.log("[Sky] Sky initialized, waiting for planes...")
+        self.logger = Logger("Sky", self.client, verbose=kwargs.get("verbose", False))
+        self.logger.log("Sky initialized, waiting for planes...")
 
     def to_dict(self):
         """Convert the Sky instance to a JSON representation."""
@@ -53,7 +53,7 @@ class Sky:
         plane = Plane(plane_id)
         self.plane_queue.append(plane)
         self.logger.log(
-            f"[Sky] New plane added: {plane.plane_id} -> gate {plane.destination_gate}",
+            f"New plane added: {plane.plane_id} -> gate {plane.destination_gate}",
         )
 
     def send_next_plane(self, client, userdata, msg):  # pylint:disable=unused-argument
@@ -66,7 +66,7 @@ class Sky:
                 plane.destination_gate = message["gate_number"]
                 self.client.publish("runway", json.dumps(plane.to_dict()))
                 self.logger.log(
-                    f"[Sky] Sent plane {plane.plane_id} to runway; destination gate {plane.destination_gate}",
+                    f"Sent plane {plane.plane_id} to runway; destination gate {plane.destination_gate}",
                 )
 
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
@@ -75,7 +75,7 @@ class Sky:
         if random.random() < 0.3:
             self.add_new_plane()
         else:
-            self.logger.log("[Sky] No new plane added this tick")
+            self.logger.log("No new plane added this tick")
 
 
 parser = argparse.ArgumentParser(description="Gate Simulation")

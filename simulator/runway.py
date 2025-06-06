@@ -35,8 +35,10 @@ class Runway:
         self.client.subscribe("gate_updates")
         self.client.message_callback_add("gate_updates", self.on_gate_update)
 
-        self.logger = Logger(self.client, verbose=kwargs.get("verbose", False))
-        self.logger.log("[Runway] Runway initialized, waiting for planes...")
+        self.logger = Logger(
+            "Runway", self.client, verbose=kwargs.get("verbose", False)
+        )
+        self.logger.log("Runway initialized, waiting for planes...")
 
     def to_dict(self):
         """Convert the Runway instance to a JSON representation."""
@@ -64,10 +66,10 @@ class Runway:
             self.current_plane.ticks_on_runway = random.randint(
                 self.RUNWAY_MIN_TICKS, self.RUNWAY_MAX_TICKS
             )
-            self.logger.log(f"[Runway] Plane {plane['plane_id']} arrived on runway")
+            self.logger.log(f"Plane {plane['plane_id']} arrived on runway")
         else:
             self.logger.log(
-                f"[Runway] ERROR!!! Plane {plane['plane_id']} arrived but runway "
+                f"ERROR!!! Plane {plane['plane_id']} arrived but runway "
                 + f"is occupied by {self.current_plane['plane_id']}",
             )
 
@@ -78,13 +80,13 @@ class Runway:
             topic = f"gate/{self.current_plane.destination_gate}"
             self.client.publish(topic, json.dumps(self.current_plane.to_dict()))
             self.logger.log(
-                f"[Runway] Sent plane {self.current_plane.plane_id} to gate "
+                f"Sent plane {self.current_plane.plane_id} to gate "
                 + f"{self.current_plane.destination_gate}",
             )
             self.current_plane = None
         else:
             self.logger.log(
-                f"[Runway] Plane {self.current_plane.plane_id} still on runway, "
+                f"Plane {self.current_plane.plane_id} still on runway, "
                 + f"ticks: {self.current_plane.ticks_on_runway}",
             )
 
@@ -93,11 +95,11 @@ class Runway:
         gate_update = json.loads(msg.payload.decode())
         gate_number = gate_update.get("gate_number")
         if gate_number and gate_update.get("state") == "free":
-            self.logger.log(f"[Runway] Gate {gate_number} is now free.")
+            self.logger.log(f"Gate {gate_number} is now free.")
             self.free_gates.add(gate_number)
         if gate_number and gate_update.get("state") == "closed":
             if gate_number in self.free_gates:
-                self.logger.log(f"[Runway] Gate {gate_number} is now closed.")
+                self.logger.log(f"Gate {gate_number} is now closed.")
                 self.free_gates.remove(gate_number)
 
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
@@ -111,7 +113,7 @@ class Runway:
             self.client.publish(
                 "send_next_plane", json.dumps({"gate_number": gate_number})
             )
-            self.logger.log("[Runway] Ready for next plane")
+            self.logger.log("Ready for next plane")
 
 
 parser = argparse.ArgumentParser(description="Gate Simulation")
