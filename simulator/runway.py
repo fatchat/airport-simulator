@@ -6,6 +6,7 @@ import argparse
 from redis import Redis
 import paho.mqtt.client as mqtt
 from plane import Plane
+from logger import Logger
 
 MQTT_BROKER = "localhost"
 REDIS_BROKER = "localhost"
@@ -14,7 +15,7 @@ redis_client = Redis(host=REDIS_BROKER, port=6379)
 
 
 class Runway:
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Runway listens for planes arriving and sends them to gates after 3 ticks."""
         self.current_plane = None
         self.free_gates = set()
@@ -34,9 +35,8 @@ class Runway:
         self.client.subscribe("gate_updates")
         self.client.message_callback_add("gate_updates", self.on_gate_update)
 
-        self.client.publish(
-            "logs", "[Runway] Runway initialized, waiting for planes..."
-        )
+        self.logger = Logger(self.client, verbose=kwargs.get("verbose", False))
+        self.logger.log("[Runway] Runway initialized, waiting for planes...")
 
     def to_dict(self):
         """Convert the Runway instance to a JSON representation."""
@@ -48,9 +48,9 @@ class Runway:
         }
 
     @staticmethod
-    def from_json(data):
+    def from_json(data, **kwargs):
         """Load the Runway state from a JSON representation."""
-        restored_runway = Runway()
+        restored_runway = Runway(**kwargs)
         if data.get("current_plane"):
             restored_runway.current_plane = Plane.from_dict(data["current_plane"])
         restored_runway.free_gates = set(data.get("free_gates", []))
@@ -64,12 +64,9 @@ class Runway:
             self.current_plane.ticks_on_runway = random.randint(
                 self.RUNWAY_MIN_TICKS, self.RUNWAY_MAX_TICKS
             )
-            self.client.publish(
-                "logs", f"[Runway] Plane {plane['plane_id']} arrived on runway"
-            )
+            self.logger.log(f"[Runway] Plane {plane['plane_id']} arrived on runway")
         else:
-            self.client.publish(
-                "logs",
+            self.logger.log(
                 f"[Runway] ERROR!!! Plane {plane['plane_id']} arrived but runway "
                 + f"is occupied by {self.current_plane['plane_id']}",
             )
@@ -80,15 +77,13 @@ class Runway:
         if self.current_plane.ticks_on_runway <= 0:
             topic = f"gate/{self.current_plane.destination_gate}"
             self.client.publish(topic, json.dumps(self.current_plane.to_dict()))
-            self.client.publish(
-                "logs",
+            self.logger.log(
                 f"[Runway] Sent plane {self.current_plane.plane_id} to gate "
                 + f"{self.current_plane.destination_gate}",
             )
             self.current_plane = None
         else:
-            self.client.publish(
-                "logs",
+            self.logger.log(
                 f"[Runway] Plane {self.current_plane.plane_id} still on runway, "
                 + f"ticks: {self.current_plane.ticks_on_runway}",
             )
@@ -98,13 +93,11 @@ class Runway:
         gate_update = json.loads(msg.payload.decode())
         gate_number = gate_update.get("gate_number")
         if gate_number and gate_update.get("state") == "free":
-            self.client.publish("logs", f"[Runway] Gate {gate_number} is now free.")
+            self.logger.log(f"[Runway] Gate {gate_number} is now free.")
             self.free_gates.add(gate_number)
         if gate_number and gate_update.get("state") == "closed":
             if gate_number in self.free_gates:
-                self.client.publish(
-                    "logs", f"[Runway] Gate {gate_number} is now closed."
-                )
+                self.logger.log(f"[Runway] Gate {gate_number} is now closed.")
                 self.free_gates.remove(gate_number)
 
     def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
@@ -118,19 +111,20 @@ class Runway:
             self.client.publish(
                 "send_next_plane", json.dumps({"gate_number": gate_number})
             )
-            self.client.publish("logs", "[Runway] Ready for next plane")
+            self.logger.log("[Runway] Ready for next plane")
 
 
 parser = argparse.ArgumentParser(description="Gate Simulation")
+parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 args = parser.parse_args()
 
 saved_state = redis_client.get("runway")
 if saved_state:
     print("Restoring saved state from Redis...")
     saved_state = json.loads(saved_state.decode())
-    runway = Runway.from_json(saved_state)
+    runway = Runway.from_json(saved_state, verbose=args.verbose)
 else:
-    runway = Runway()
+    runway = Runway(verbose=args.verbose)
 
 
 runway.client.loop_forever()

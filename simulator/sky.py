@@ -6,6 +6,7 @@ import argparse
 from redis import Redis
 import paho.mqtt.client as mqtt
 from plane import Plane
+from logger import Logger
 
 MQTT_BROKER = "localhost"
 REDIS_BROKER = "localhost"
@@ -14,7 +15,7 @@ redis_client = Redis(host=REDIS_BROKER, port=6379)
 
 
 class Sky:
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.plane_queue = []
         self.next_plane_id = 0
 
@@ -24,7 +25,9 @@ class Sky:
         self.client.subscribe("send_next_plane")
         self.client.message_callback_add("heartbeat", self.on_heartbeat)
         self.client.message_callback_add("send_next_plane", self.send_next_plane)
-        self.client.publish("logs", "[Sky] Sky initialized, waiting for planes...")
+
+        self.logger = Logger(self.client, verbose=kwargs.get("verbose", False))
+        self.logger.log("[Sky] Sky initialized, waiting for planes...")
 
     def to_dict(self):
         """Convert the Sky instance to a JSON representation."""
@@ -34,9 +37,9 @@ class Sky:
         }
 
     @staticmethod
-    def from_dict(data):
+    def from_dict(data, **kwargs):
         """Load the Sky state from a JSON representation."""
-        restored_sky = Sky()
+        restored_sky = Sky(**kwargs)
         restored_sky.plane_queue = [
             Plane.from_dict(plane_data) for plane_data in data.get("plane_queue", [])
         ]
@@ -49,8 +52,7 @@ class Sky:
         self.next_plane_id += 1
         plane = Plane(plane_id)
         self.plane_queue.append(plane)
-        self.client.publish(
-            "logs",
+        self.logger.log(
             f"[Sky] New plane added: {plane.plane_id} -> gate {plane.destination_gate}",
         )
 
@@ -63,8 +65,7 @@ class Sky:
                 plane.state = "on_runway"
                 plane.destination_gate = message["gate_number"]
                 self.client.publish("runway", json.dumps(plane.to_dict()))
-                self.client.publish(
-                    "logs",
+                self.logger.log(
                     f"[Sky] Sent plane {plane.plane_id} to runway; destination gate {plane.destination_gate}",
                 )
 
@@ -74,18 +75,19 @@ class Sky:
         if random.random() < 0.3:
             self.add_new_plane()
         else:
-            self.client.publish("logs", "[Sky] No new plane added this tick")
+            self.logger.log("[Sky] No new plane added this tick")
 
 
 parser = argparse.ArgumentParser(description="Gate Simulation")
+parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 args = parser.parse_args()
 
 saved_state = redis_client.get("sky")
 if saved_state:
     print("Restoring saved state from Redis...")
     saved_state = json.loads(saved_state.decode())
-    sky = Sky.from_dict(saved_state)
+    sky = Sky.from_dict(saved_state, verbose=args.verbose)
 else:
-    sky = Sky()
+    sky = Sky(verbose=args.verbose)
 
 sky.client.loop_forever()
