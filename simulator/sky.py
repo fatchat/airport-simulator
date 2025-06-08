@@ -61,15 +61,13 @@ class Sky(AirportComponent):
     def from_dict(data, **kwargs):
         """Load the Sky state from a JSON representation."""
         restored_sky = Sky(**kwargs)
-        planes = [
-            Plane.from_dict(plane_data) for plane_data in data.get("plane_queues", [])
+        for airport, plane_queue in data.get("plane_queues", {}).items():
+            restored_sky.plane_queues[airport] = [
+                Plane.from_dict(plane) for plane in plane_queue
+            ]
+        restored_sky.planes_flying = [
+            Plane.from_dict(plane) for plane in data.get("planes_flying", [])
         ]
-        restored_sky.plane_queues = {}
-        for plane in planes:
-            if plane.end_airport not in restored_sky.plane_queues:
-                restored_sky.plane_queues[plane.end_airport] = []
-            restored_sky.plane_queues[plane.end_airport].append(plane)
-        restored_sky.planes_flying = data.get("planes_flying", [])
         return restored_sky
 
     def handle_message(self, message: dict):
@@ -80,9 +78,7 @@ class Sky(AirportComponent):
 
                 if self.validate_message(["airport", "runway_number"], message):
                     airport = message["airport"]
-                    self.logger.log(
-                        f"Request to send next plane received from {airport}."
-                    )
+                    self.log(f"Request to send next plane received from {airport}.")
 
                     if self.plane_queues.get(airport):
 
@@ -99,11 +95,9 @@ class Sky(AirportComponent):
                                 }
                             ),
                         )
-                        self.logger.log(
-                            f"Sent plane {plane.plane_id} to {runway_topic}"
-                        )
+                        self.log(f"Sent plane {plane.plane_id} to {runway_topic}")
                     else:
-                        self.logger.log(f"No planes available to land at {airport}")
+                        self.log(f"No planes available to land at {airport}")
 
             elif message["msg_type"] == "plane_departure":
 
@@ -116,7 +110,7 @@ class Sky(AirportComponent):
                         plane.state = PlaneState.IN_SKY
                         self.planes_flying.append(plane)
 
-                        self.logger.log(
+                        self.log(
                             f"Plane {plane.plane_id} is departing to {plane.end_airport} "
                             + f"and will be in the sky for {plane.ticks_in_sky} ticks."
                         )
@@ -124,7 +118,7 @@ class Sky(AirportComponent):
                         if plane.end_airport not in self.plane_queues:
                             self.plane_queues[plane.end_airport] = []
                     else:
-                        self.logger.log("No plane data provided in departure message")
+                        self.log("No plane data provided in departure message")
 
     def handle_heartbeat(self):
         """Handle heartbeat messages to add new planes."""
@@ -133,12 +127,12 @@ class Sky(AirportComponent):
                 plane.state = PlaneState.CIRCLING
                 self.plane_queues[plane.end_airport].append(plane)
                 self.planes_flying.remove(plane)
-                self.logger.log(
+                self.log(
                     f"Plane {plane.plane_id} has started circling to land at {plane.end_airport}."
                 )
             else:
                 plane.ticks_in_sky -= 1
-                self.logger.log(
+                self.log(
                     f"Plane {plane.plane_id} is still in the sky, "
                     + f"{plane.ticks_in_sky} ticks remaining."
                 )

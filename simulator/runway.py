@@ -129,13 +129,13 @@ class Runway(AirportComponent):
     def handle_plane_arriving(self, plane: dict):
         """Handle the landing of a plane"""
         if self.current_plane:
-            self.logger.log(
-                f"ERROR!!! Plane {plane['plane_id']} arrived but runway "
+            self.error(
+                f"Plane {plane['plane_id']} arrived but runway "
                 + f"is occupied by {self.current_plane['plane_id']}",
             )
             return
         if self.state != RunwayState.FREE:
-            self.logger.log("ERROR: Runway in use")
+            self.error("Runway in use")
             return
 
         self.current_plane = Plane.from_dict(plane)
@@ -155,14 +155,12 @@ class Runway(AirportComponent):
                 }
             ),
         )
-        self.logger.log(
-            f"Plane {plane['plane_id']} arrived on runway, waiting for gate"
-        )
+        self.log(f"Plane {plane['plane_id']} arrived on runway, waiting for gate")
 
     def handle_arrival_gate_assigned(self, gate_topic: str, gate_number: str):
         """Handle the assignment of an arrival gate"""
         self.topic_to_notify_on_exit = gate_topic
-        self.logger.log(
+        self.log(
             f"Runway {self.runway_number} received gate assignment: {self.topic_to_notify_on_exit}"
         )
         if self.current_plane:
@@ -171,12 +169,12 @@ class Runway(AirportComponent):
             self.state = RunwayState.IN_USE_ARRIVING
             self.advance_plane()
         else:
-            self.logger.log("No plane on runway to advance")
+            self.log("No plane on runway to advance")
 
     def handle_plane_departing(self, plane: dict):
         """Handle a plane departing from this runway"""
         if self.state != RunwayState.FREE:
-            self.logger.log("ERROR: Runway in use")
+            self.error("Runway in use")
             return
         self.state = RunwayState.IN_USE_DEPARTING
         self.current_plane = Plane.from_dict(plane)
@@ -210,7 +208,7 @@ class Runway(AirportComponent):
         self.ticks_till_exit -= 1
 
         if self.ticks_till_exit > 0:
-            self.logger.log(
+            self.log(
                 f"Plane {self.current_plane.plane_id} still on runway, "
                 + f"ticks: {self.ticks_till_exit}",
             )
@@ -220,7 +218,7 @@ class Runway(AirportComponent):
             self.state == RunwayState.IN_USE_ARRIVING
             and not self.topic_to_notify_on_exit
         ):
-            self.logger.log(
+            self.log(
                 f"No gate assigned for plane {self.current_plane.plane_id} "
                 + f"on runway {self.runway_number}"
             )
@@ -250,7 +248,7 @@ class Runway(AirportComponent):
                     }
                 ),
             )
-            self.logger.log(
+            self.log(
                 f"Sent plane {self.current_plane.plane_id} to {self.topic_to_notify_on_exit}"
             )
             self.topic_to_notify_on_exit = None
@@ -264,7 +262,7 @@ class Runway(AirportComponent):
             self.advance_plane()
 
         if self.current_plane is None:
-            self.logger.log("Ready for next plane")
+            self.log("Ready for next plane")
 
 
 if __name__ == "__main__":

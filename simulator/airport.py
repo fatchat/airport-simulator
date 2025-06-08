@@ -86,8 +86,8 @@ class Airport(AirportComponent):
 
         super().__init__(**kwargs)
 
-        self.logger.log(f"Runways: {self.runways}")
-        self.logger.log(f"Gates: {self.gates}")
+        self.log(f"Runways: {self.runways}")
+        self.log(f"Gates: {self.gates}")
 
     def to_dict(self):
         """Convert the Airport instance to a dict representation."""
@@ -142,9 +142,7 @@ class Airport(AirportComponent):
                 gate_topic,
                 json.dumps({"msg_type": "departing_plane", "plane": plane.to_dict()}),
             )
-            self.logger.log(
-                f"Plane {plane.plane_id} has been assigned to gate {gate_number}"
-            )
+            self.log(f"Plane {plane.plane_id} has been assigned to gate {gate_number}")
             self.gates[gate_number] = GateState.IN_USE_DEPARTING.value
             return True
         return False
@@ -203,7 +201,7 @@ class Airport(AirportComponent):
         """Handle heartbeat messages to update gate state."""
         for gate_number, state in self.gates.items():
             if state == GateState.FREE.value:
-                self.logger.log(f"Gate {gate_number} is free, checking for planes.")
+                self.log(f"Gate {gate_number} is free, checking for planes.")
 
                 if random.random() < 0.5:
                     if not self.assign_gate_for_departure(gate_number):
@@ -215,7 +213,7 @@ class Airport(AirportComponent):
         # assign runway
         for runway_number, state in self.runways.items():
             if state == RunwayState.FREE.value:
-                self.logger.log(f"Runway {runway_number} is free, checking for planes.")
+                self.log(f"Runway {runway_number} is free, checking for planes.")
 
                 if random.random() < 0.5:
                     if not self.assign_runway_for_departure(runway_number):
@@ -227,17 +225,17 @@ class Airport(AirportComponent):
     def handle_gate_update(self, gate_number: str, gate_state: str):
         """Handle updates to gate state."""
         self.gates[gate_number] = gate_state
-        self.logger.log(f"Gate {gate_number} is now {gate_state}")
+        self.log(f"Gate {gate_number} is now {gate_state}")
 
     def handle_runway_update(self, runway_number: str, runway_state: str):
         """Handle updates to runway state."""
         self.runways[runway_number] = runway_state
-        self.logger.log(f"Runway {runway_number} is now {runway_state}")
+        self.log(f"Runway {runway_number} is now {runway_state}")
 
     def handle_new_plane(self, end_airport: str):
         """Handle a new plane arriving at the airport hangar."""
         plane = Plane(str(uuid4()), self.airport, end_airport)
-        self.logger.log(f"Plane {plane.plane_id} will depart to {plane.end_airport}")
+        self.log(f"Plane {plane.plane_id} will depart to {plane.end_airport}")
         self.waiting_for_departure_gate.append(plane)
 
     def handle_message(self, message: dict):

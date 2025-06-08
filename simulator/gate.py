@@ -135,7 +135,7 @@ class Gate(AirportComponent):
         self.ticks_till_exit = random.randint(
             3, 5
         )  # Random time at gate between 3 and 5 ticks
-        self.logger.log(
+        self.log(
             f"Plane {self.current_plane.plane_id} is at gate for arrival; "
             + f"time at gate: {self.ticks_till_exit} ticks",
         )
@@ -147,7 +147,7 @@ class Gate(AirportComponent):
         self.ticks_till_exit = random.randint(
             3, 5
         )  # Random time at gate between 3 and 5 ticks
-        self.logger.log(
+        self.log(
             f"Plane {self.current_plane.plane_id} is at gate for departure; "
             + f"time at gate: {self.ticks_till_exit} ticks",
         )
@@ -189,14 +189,14 @@ class Gate(AirportComponent):
     def handle_heartbeat(self):
         """Handle heartbeat messages to update gate state."""
         if self.current_plane:
-            self.logger.log(
+            self.log(
                 f"Holding plane {self.current_plane.plane_id} "
                 + f"for {self.ticks_till_exit} ticks.",
             )
             self.ticks_till_exit -= 1
             if self.ticks_till_exit <= 0:
                 if self.state == GateState.IN_USE_DEPARTING:
-                    self.logger.log(
+                    self.log(
                         f"Plane {self.current_plane.plane_id} "
                         + "is ready to leave the gate.",
                     )
@@ -211,12 +211,14 @@ class Gate(AirportComponent):
                     )
 
                 elif self.state == GateState.IN_USE_ARRIVING:
-                    self.logger.log(
+                    self.log(
                         f"Plane {self.current_plane.plane_id} "
                         + "is going back to its hangar"
                     )
                     self.current_plane = None
                     self.state = GateState.FREE
+        else:
+            self.log("Ready for next plane")
 
 
 # == main
