@@ -242,8 +242,8 @@ class Runway(AirportComponent):
                     }
                 ),
             )
-        self.topic_to_notify_on_exit = None
-        self.current_plane = None
+            self.topic_to_notify_on_exit = None
+            self.current_plane = None
 
         if self.state == RunwayState.IN_USE_ARRIVING and self.topic_to_notify_on_exit:
             self.client.publish(
