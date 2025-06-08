@@ -16,6 +16,14 @@ CORS(app)
 redis = Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 
+def validate_args(request_args, required_keys: list):
+    """ensures all required keys are present in request_args"""
+    for key in required_keys:
+        if key not in request_args:
+            return False
+    return True
+
+
 @app.route("/state/sky", methods=["GET"])
 def get_state_sky():
     """HTTP endpoint to get the current state of the sky."""
@@ -26,24 +34,56 @@ def get_state_sky():
     return jsonify(sky)
 
 
+@app.route("/state/airport", methods=["GET"])
+def get_state_airport():
+    """HTTP endpoint to get the current state of the airport."""
+    if not validate_args(request.args, ["airport"]):
+        return jsonify({"error": "missing parameter `airport`"}), 404
+
+    redis_key = "airport-" + request.args["airport"]
+    airport = redis.get(redis_key)
+    if not airport:
+        return jsonify({"error": "airport state not found for " + redis_key}), 404
+
+    return jsonify(json.loads(airport))
+
+
 @app.route("/state/runway", methods=["GET"])
 def get_state_runway():
     """HTTP endpoint to get the current state of the runway."""
-    runway = redis.get("runway")
+    if not validate_args(request.args, ["airport", "runway_number"]):
+        return (
+            jsonify({"error": "required parameters are `airport` and `runway_number`"}),
+            404,
+        )
+
+    airport = request.args["airport"]
+    runway_number = request.args["runway_number"]
+    redis_key = f"airport-{airport}-runway-{runway_number}"
+    runway = redis.get(redis_key)
     if not runway:
-        return jsonify({"error": "runway state not found"}), 404
-    runway = json.loads(runway)
-    return jsonify(runway)
+        return jsonify({"error": "runway state not found for " + redis_key}), 404
+
+    return jsonify(json.loads(runway))
 
 
 @app.route("/state/gate", methods=["GET"])
 def get_state_gate():
     """HTTP endpoint to get the current state of the gate."""
-    gate = redis.get("gate-" + request.args.get("gate_number", "1"))
+    if not validate_args(request.args, ["airport", "gate_number"]):
+        return (
+            jsonify({"error": "required parameters are `airport` and `gate_number`"}),
+            404,
+        )
+
+    airport = request.args["airport"]
+    gate_number = request.args["gate_number"]
+    redis_key = f"airport-{airport}-gate-{gate_number}"
+    gate = redis.get(redis_key)
     if not gate:
-        return jsonify({"error": "gate state not found"}), 404
-    gate = json.loads(gate)
-    return jsonify(gate)
+        return jsonify({"error": "gate state not found for " + redis_key}), 404
+
+    return jsonify(json.loads(gate))
 
 
 def start_http_server():
