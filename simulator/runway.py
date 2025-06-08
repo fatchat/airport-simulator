@@ -201,7 +201,7 @@ class Runway(AirportComponent):
                 "sky",
                 json.dumps(
                     {
-                        "msg-type": "plane_departure",
+                        "msg_type": "plane_departure",
                         "plane": self.current_plane.to_dict(),
                     }
                 ),
