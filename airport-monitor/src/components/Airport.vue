@@ -9,12 +9,11 @@
     </template>
 
     <template v-else>
-      <h2 class="text-xl font-semibold mt-2 mb-2">Gate {{ props.gate_number }} / {{ props.airport }}</h2>
-      <p>{{ data.state }}</p>
-      <template v-if="data.current_plane">
-        <p class="font-medium">{{ data.current_plane.plane_id }} is at the gate</p>
-        <p>Leaving in: {{ data.current_plane.time_at_gate }} ticks</p>
-      </template>
+      <h2 class="text-xl font-semibold mt-2 mb-2">Airport {{ props.name }}</h2>
+      <p>Runways</p>
+      <div v-for="(state, runway) in data.runways" v-bind:key="runway">
+        <p>{{ runway }} {{ state }}</p>
+      </div>
     </template>
   </div>
 </template>
@@ -26,8 +25,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   title: String,
   url: String,
-  airport: String,
-  gate_number: String,
+  name: String,
   interval: {
     type: Number,
     default: 1000 // Default to 5 seconds
@@ -42,7 +40,7 @@ let intervalId = null
 
 const fetchData = async () => {
   try {
-    const res = await fetch(props.url + "?airport=" + props.airport + "&gate_number=" + props.gate_number)
+    const res = await fetch(props.url + "?airport=" + props.name)
     if (!res.ok) throw new Error(res.statusText)
     data.value = await res.json()
     error.value = null

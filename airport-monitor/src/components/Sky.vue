@@ -10,8 +10,8 @@
 
     <template v-else>
       <h2 class="text-xl font-semibold mt-2 mb-2">In the air</h2>
-      <p>{{ data.plane_queue.length }} planes in the air</p>
-      <p v-if="data.plane_queue.length > 0">{{ data.plane_queue[0].plane_id }} is next </p>
+      <p>{{ data.planes_flying.length }} planes in the air</p>
+      <p v-if="data.planes_flying.length > 0">{{ data.planes_flying[0].plane_id }} is next </p>
     </template>
   </div>
 </template>
