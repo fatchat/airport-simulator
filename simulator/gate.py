@@ -94,6 +94,11 @@ class Gate(AirportComponent):
             ),
         )
 
+        self.client.publish(
+            self.airport_topic,
+            json.dumps({"msg_type": "register_gate", "gate_number": self.gate_number}),
+        )
+
     def to_dict(self):
         """Convert the Gate instance to a dict representation."""
         return {

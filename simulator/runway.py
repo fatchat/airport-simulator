@@ -88,6 +88,13 @@ class Runway(AirportComponent):
 
         super().__init__(**kwargs)
 
+        self.client.publish(
+            self.airport_topic,
+            json.dumps(
+                {"msg_type": "register_runway", "runway_number": self.runway_number}
+            ),
+        )
+
     def to_dict(self):
         """Convert the Runway instance to a JSON representation."""
         return {

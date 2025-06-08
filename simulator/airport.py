@@ -34,11 +34,7 @@ class Airport(AirportComponent):
     @staticmethod
     def args_to_dict(arguments: argparse.Namespace) -> dict:
         """Convert command line arguments to a state dictionary."""
-        return {
-            "airport": arguments.airport,
-            "runways": arguments.runways,
-            "gates": arguments.gates,
-        }
+        return {"airport": arguments.airport, "runways": [], "gates": []}
 
     @property
     def mqtt_topic(self):
@@ -200,7 +196,7 @@ class Airport(AirportComponent):
     def handle_heartbeat(self):
         """Handle heartbeat messages to update gate state."""
         for gate_number, state in self.gates.items():
-            if state == GateState.FREE.value:
+            if GateState(state) == GateState.FREE:
                 self.log(f"Gate {gate_number} is free, checking for planes.")
 
                 if random.random() < 0.5:
@@ -212,7 +208,7 @@ class Airport(AirportComponent):
 
         # assign runway
         for runway_number, state in self.runways.items():
-            if state == RunwayState.FREE.value:
+            if RunwayState(state) == RunwayState.FREE:
                 self.log(f"Runway {runway_number} is free, checking for planes.")
 
                 if random.random() < 0.5:
@@ -238,6 +234,16 @@ class Airport(AirportComponent):
         self.log(f"Plane {plane.plane_id} will depart to {plane.end_airport}")
         self.waiting_for_departure_gate.append(plane)
 
+    def handle_register_runway(self, runway_number: str):
+        """Register a new runway for this Airport"""
+        self.runways[runway_number] = RunwayState.FREE.value
+        self.log(f"Registered runway {runway_number}")
+
+    def handle_register_gate(self, gate_number: str):
+        """Register a new gate for this Airport"""
+        self.gates[gate_number] = GateState.FREE.value
+        self.log(f"Registered gate {gate_number}")
+
     def handle_message(self, message: dict):
         """Handle messages sent to the airport."""
         if message["msg_type"] == "gate_update":
@@ -262,24 +268,20 @@ class Airport(AirportComponent):
             if self.validate_message(["gate"], message):
                 self.waiting_for_departure_runway.append(message["gate"])
 
+        elif message["msg_type"] == "register_runway":
+            if self.validate_message(["runway_number"], message):
+                self.handle_register_runway(message["runway_number"])
+
+        elif message["msg_type"] == "register_gate":
+            if self.validate_message(["gate_number"], message):
+                self.handle_register_gate(message["gate_number"])
+
 
 # == main
 if __name__ == "__main__":
     redis_client = Redis(host=REDIS_BROKER, port=6379)
     parser = argparse.ArgumentParser(description="Airport Simulation")
     parser.add_argument("--airport", required=True, type=str, help="The airport name")
-    parser.add_argument(
-        "--runways",
-        type=comma_separated_list,
-        default=[],
-        help="The runway names, required for new airports",
-    )
-    parser.add_argument(
-        "--gates",
-        type=comma_separated_list,
-        default=[],
-        help="The gate names, required for new airports",
-    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     args = parser.parse_args()
 
