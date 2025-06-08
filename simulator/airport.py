@@ -9,9 +9,8 @@ import argparse
 from redis import Redis
 
 from restorable import construct_or_restore
-from interfaces import AirportComponent
+from airportcomponent import AirportComponent
 from plane import Plane, PlaneState
-from logger import Logger
 from gate import GateState
 
 MQTT_BROKER = "localhost"
