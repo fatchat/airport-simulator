@@ -51,7 +51,12 @@ class Runway(AirportComponent):
     @property
     def mqttclientname(self):
         """Name of the MQTT client we will create"""
-        return "Runway"
+        return f"Runway_{self.runway_number}"
+
+    @property
+    def redis_key(self) -> str:
+        """Name of key for redis storage"""
+        return f"airport-{self.airport}-runway-{self.runway_number}"
 
     @property
     def loggername(self) -> str:
@@ -155,7 +160,7 @@ class Runway(AirportComponent):
             self.logger.log(message)
             return
 
-        if message["msg_type"] == "plane-arriving":
+        if message["msg_type"] == "plane_arrival":
             if self.validate_message(["plane"], message):
                 self.handle_plane_arriving(message["plane"])
 
@@ -165,7 +170,7 @@ class Runway(AirportComponent):
                     message["gate_topic"], message["gate_number"]
                 )
 
-        elif message["msg_type"] == "plane-departing":
+        elif message["msg_type"] == "plane_departed":
             if self.validate_message(["plane"], message):
                 self.handle_plane_departing(message["plane"])
 
@@ -196,7 +201,13 @@ class Runway(AirportComponent):
         if self.state == RunwayState.IN_USE_DEPARTING:
             self.current_plane.state = PlaneState.IN_SKY
             self.client.publish(
-                "sky", json.dumps({"plane": self.current_plane.to_dict()})
+                "sky",
+                json.dumps(
+                    {
+                        "msg-type": "plane_departure",
+                        "plane": self.current_plane.to_dict(),
+                    }
+                ),
             )
             self.current_plane = None
 
@@ -222,7 +233,7 @@ class Runway(AirportComponent):
         self, mqtt_client, userdata, msg
     ):  # pylint:disable=unused-argument
         """Handle heartbeat messages to advance the runway state."""
-        redis_client.set("runway", json.dumps(self.to_dict()))
+        redis_client.set(self.redis_key, json.dumps(self.to_dict()))
         if self.current_plane:
             self.advance_plane()
 

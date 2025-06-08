@@ -56,6 +56,11 @@ class Airport(AirportComponent):
         """Name of the logger"""
         return f"Airport {self.airport}"
 
+    @property
+    def redis_key(self) -> str:
+        """Key for Redis storage"""
+        return airport_redis_key(self.airport)
+
     def __init__(
         self, airport: str, runways: list | dict, gates: list | dict, **kwargs
     ):
@@ -141,6 +146,7 @@ class Airport(AirportComponent):
             self.logger.log(
                 f"Plane {plane.plane_id} has been assigned to gate {gate_number}"
             )
+            self.gates[gate_number] = GateState.IN_USE_DEPARTING.value
             return True
         return False
 
@@ -158,6 +164,7 @@ class Airport(AirportComponent):
                     }
                 ),
             )
+            self.gates[gate_number] = GateState.IN_USE_ARRIVING.value
             return True
         return False
 
@@ -165,7 +172,7 @@ class Airport(AirportComponent):
         self, mqtt_client, userdata, msg  # pylint:disable=unused-argument
     ):
         """Handle heartbeat messages to update gate state."""
-        redis_client.set(airport_redis_key(self.airport), json.dumps(self.to_dict()))
+        redis_client.set(self.redis_key, json.dumps(self.to_dict()))
         self.logger.log("Heartbeat received, state updated.")
 
         for gate_number, state in self.gates.items():

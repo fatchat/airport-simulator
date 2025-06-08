@@ -46,8 +46,14 @@ class AirportComponent(ABC):
         """Handler for mqtt_topic"""
 
     @property
+    @abstractmethod
     def loggername(self) -> str:
         """Name of the logger"""
+
+    @property
+    @abstractmethod
+    def redis_key(self) -> str:
+        """Key for Redis storage"""
 
     def validate_message(self, required_keys: List[str], message: dict):
         """Validate that the message contains all required keys."""

@@ -38,6 +38,11 @@ class Sky(AirportComponent):
         """Name of the logger"""
         return "Sky"
 
+    @property
+    def redis_key(self) -> str:
+        """Key for Redis storage"""
+        return "sky"
+
     def __init__(self, **kwargs):
         self.plane_queues: Dict[str, List[Plane]] = {}
         self.planes_flying: List[Plane] = []
@@ -51,7 +56,7 @@ class Sky(AirportComponent):
                 airport: [plane.to_dict() for plane in planes]
                 for airport, planes in self.plane_queues.items()
             },
-            "planes_flying": self.planes_flying,
+            "planes_flying": [plane.to_dict() for plane in self.planes_flying],
         }
 
     @staticmethod
@@ -82,7 +87,7 @@ class Sky(AirportComponent):
                         f"Request to send next plane received from {airport}."
                     )
 
-                    if airport in self.plane_queues:
+                    if self.plane_queues.get(airport):
 
                         runway = message["runway"]
                         plane: Plane = self.plane_queues[airport].pop(0)
@@ -128,8 +133,8 @@ class Sky(AirportComponent):
         self, mqtt_client, userdata, msg
     ):  # pylint:disable=unused-argument
         """Handle heartbeat messages to add new planes."""
-        redis_client.set("sky", json.dumps(self.to_dict()))
-        for plane in self.planes_flying:
+        redis_client.set(self.redis_key, json.dumps(self.to_dict()))
+        for plane in list(self.planes_flying):
             if plane.ticks_in_sky <= 0:
                 plane.state = PlaneState.CIRCLING
                 self.plane_queues[plane.end_airport].append(plane)
