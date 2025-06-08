@@ -150,14 +150,8 @@ class Runway(AirportComponent):
             Runway.RUNWAY_MIN_TICKS, Runway.RUNWAY_MAX_TICKS
         )
 
-    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
+    def handle_message(self, message: dict):
         """Handle plane arrivals on the runway."""
-        message = json.loads(msg.payload.decode())
-        if "msg_type" not in message:
-            self.logger.log("ERROR: Message does not contain 'msg_type'")
-            self.logger.log(message)
-            return
-
         if message["msg_type"] == "plane_arrival":
             if self.validate_message(["plane"], message):
                 self.handle_plane_arriving(message["plane"])

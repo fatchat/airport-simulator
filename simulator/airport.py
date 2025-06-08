@@ -195,14 +195,8 @@ class Airport(AirportComponent):
         self.logger.log(f"Plane {plane.plane_id} will depart to {plane.end_airport}")
         self.waiting_for_departure_gate.append(plane)
 
-    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
+    def handle_message(self, message: dict):
         """Handle messages sent to the airport."""
-        message = json.loads(msg.payload.decode())
-        if "msg_type" not in message:
-            self.logger.log("ERROR: Message does not contain 'msg_type'")
-            self.logger.log(message)
-            return
-
         if message["msg_type"] == "gate_update":
             if self.validate_message(["gate_number", "gate_state"], message):
                 self.handle_gate_update(message["gate_number"], message["gate_state"])

@@ -51,8 +51,22 @@ class AirportComponent(ABC):
         """MQTT topic for this object"""
 
     @abstractmethod
-    def on_message(self, mqtt_client, userdata, msg):
+    def handle_message(self, message: dict):
+        """Client-specific implementation"""
+
+    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
         """Handler for mqtt_topic"""
+        payload = msg.payload.decode()
+        try:
+            message = json.loads(payload)
+        except json.decoder.JSONDecodeError:
+            self.logger.log(f"ERROR: received non-json message: [{payload}]")
+            return
+        if "msg_type" not in message:
+            self.logger.log("ERROR: Message does not contain 'msg_type'")
+            self.logger.log(message)
+            return
+        self.handle_message(message)
 
     @property
     @abstractmethod

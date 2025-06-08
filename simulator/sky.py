@@ -72,9 +72,8 @@ class Sky(AirportComponent):
         restored_sky.planes_flying = data.get("planes_flying", [])
         return restored_sky
 
-    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
+    def handle_message(self, message: dict):
         """runway requests next plane"""
-        message = json.loads(msg.payload.decode())
         if self.validate_message(["msg_type"], message):
 
             if message["msg_type"] == "land_next_plane":
@@ -127,7 +126,7 @@ class Sky(AirportComponent):
                     else:
                         self.logger.log("No plane data provided in departure message")
 
-    def on_hearthandle_heartbeatbeat(self):
+    def handle_heartbeat(self):
         """Handle heartbeat messages to add new planes."""
         for plane in list(self.planes_flying):
             if plane.ticks_in_sky <= 0:

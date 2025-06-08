@@ -143,9 +143,8 @@ class Gate(AirportComponent):
         self.current_plane = None
         self.state = GateState.FREE
 
-    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
+    def handle_message(self, message: dict):
         """Handle incoming plane messages at the gate."""
-        message = json.loads(msg.payload.decode())
         if self.validate_message(["msg_type"], message):
 
             if message["msg_type"] == "arriving_plane":
