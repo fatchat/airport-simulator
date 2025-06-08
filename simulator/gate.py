@@ -63,11 +63,22 @@ class Gate(AirportComponent):
         """Key for Redis storage"""
         return gate_redis_key(self.airport, self.gate_number)
 
+    @property
+    def state(self) -> GateState:
+        """gate state"""
+        return self._state
+
+    @state.setter
+    def state(self, newstate: str):
+        """gate state"""
+        self._state = GateState(newstate)
+        self.update_gate_state_to_airport()
+
     def __init__(self, airport: str, gate_number: str, **kwargs):
         self.airport = airport
         self.gate_number = gate_number
         self.current_plane = None
-        self.state = GateState.FREE
+        self._state = GateState.FREE
         self.ticks_till_exit = -1
 
         super().__init__(**kwargs)
@@ -104,6 +115,19 @@ class Gate(AirportComponent):
             restored_gate.state = GateState(data["state"])
         return restored_gate
 
+    def update_gate_state_to_airport(self):
+        """Let the Airport know the gate state"""
+        self.client.publish(
+            self.airport_topic,
+            json.dumps(
+                {
+                    "msg_type": "gate_update",
+                    "gate_number": self.gate_number,
+                    "gate_state": self.state.value,
+                }
+            ),
+        )
+
     def handle_arriving_plane(self, plane: dict):
         """Handle a plane arriving at the gate from a runway."""
         self.current_plane = Plane.from_dict(plane)
@@ -128,19 +152,20 @@ class Gate(AirportComponent):
             + f"time at gate: {self.ticks_till_exit} ticks",
         )
 
-    def handle_runway_assigned(self, runway_topic: str):
+    def handle_departure_runway_assigned(self, runway_number: str, runway_topic: str):
         """Transition plane from gate to runway for departure"""
-        self.current_plane.state = PlaneState.ON_DEPARTURE_RUNWAY
-        self.client.publish(
-            runway_topic,
-            json.dumps(
-                {
-                    "msg_type": "plane_departed",
-                    "plane": self.current_plane.to_dict(),
-                }
-            ),
-        )
-        self.current_plane = None
+        if self.current_plane:
+            self.current_plane.state = PlaneState.ON_DEPARTURE_RUNWAY
+            self.client.publish(
+                runway_topic,
+                json.dumps(
+                    {
+                        "msg_type": "plane_departing",
+                        "plane": self.current_plane.to_dict(),
+                    }
+                ),
+            )
+            self.current_plane = None
         self.state = GateState.FREE
 
     def handle_message(self, message: dict):
@@ -155,9 +180,11 @@ class Gate(AirportComponent):
                 if self.validate_message(["plane"], message):
                     self.handle_departing_plane(message["plane"])
 
-            elif message["msg_type"] == "runway_assigned":
-                if self.validate_message(["runway_topic"], message):
-                    self.handle_runway_assigned(message["runway_topic"])
+            elif message["msg_type"] == "departure_runway_assigned":
+                if self.validate_message(["runway_number", "runway_topic"], message):
+                    self.handle_departure_runway_assigned(
+                        message["runway_number"], message["runway_topic"]
+                    )
 
     def handle_heartbeat(self):
         """Handle heartbeat messages to update gate state."""
@@ -190,17 +217,6 @@ class Gate(AirportComponent):
                     )
                     self.current_plane = None
                     self.state = GateState.FREE
-
-        self.client.publish(
-            self.airport_topic,
-            json.dumps(
-                {
-                    "msg_type": "gate_update",
-                    "gate_number": self.gate_number,
-                    "gate_state": self.state.value,
-                }
-            ),
-        )
 
 
 # == main

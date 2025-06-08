@@ -12,6 +12,7 @@ from restorable import construct_or_restore
 from airportcomponent import AirportComponent
 from plane import Plane, PlaneState
 from gate import GateState
+from runway import RunwayState
 
 MQTT_BROKER = "localhost"
 REDIS_BROKER = "localhost"
@@ -166,6 +167,38 @@ class Airport(AirportComponent):
             return True
         return False
 
+    def assign_runway_for_departure(self, runway_number: str):
+        """Assign a runway to a plane waiting at a departure gate"""
+        if len(self.waiting_for_departure_runway) > 0:
+            gate_topic = self.waiting_for_departure_runway.pop(0)
+            self.client.publish(
+                gate_topic,
+                json.dumps(
+                    {
+                        "msg_type": "departure_runway_assigned",
+                        "runway_number": runway_number,
+                        "runway_topic": f"airport/{self.airport}/runway/{runway_number}",
+                    }
+                ),
+            )
+            self.runways[runway_number] = RunwayState.IN_USE_DEPARTING.value
+            return True
+        return False
+
+    def assign_runway_for_arrival(self, runway_number: str):
+        """Assign a runway to a plane circling in the sky"""
+        self.client.publish(
+            "sky",
+            json.dumps(
+                {
+                    "msg_type": "land_next_plane",
+                    "airport": self.airport,
+                    "runway_number": runway_number,
+                }
+            ),
+        )
+        # if there are no planes ready to land, the runway state won't change
+
     def handle_heartbeat(self):
         """Handle heartbeat messages to update gate state."""
         for gate_number, state in self.gates.items():
@@ -178,6 +211,18 @@ class Airport(AirportComponent):
                 else:
                     if not self.assign_gate_for_arrival(gate_number):
                         self.assign_gate_for_departure(gate_number)
+
+        # assign runway
+        for runway_number, state in self.runways.items():
+            if state == RunwayState.FREE.value:
+                self.logger.log(f"Runway {runway_number} is free, checking for planes.")
+
+                if random.random() < 0.5:
+                    if not self.assign_runway_for_departure(runway_number):
+                        self.assign_runway_for_arrival(runway_number)
+                else:
+                    if not self.assign_runway_for_arrival(runway_number):
+                        self.assign_runway_for_departure(runway_number)
 
     def handle_gate_update(self, gate_number: str, gate_state: str):
         """Handle updates to gate state."""

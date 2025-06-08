@@ -66,12 +66,23 @@ class Runway(AirportComponent):
         """Name of the logger"""
         return f"Airport/{self.airport}/Runway/{self.runway_number}"
 
+    @property
+    def state(self) -> RunwayState:
+        """runway state"""
+        return self._state
+
+    @state.setter
+    def state(self, newstate: str):
+        """runway state"""
+        self._state = RunwayState(newstate)
+        self.update_runway_state_to_airport()
+
     def __init__(self, airport: str, runway_number: str, **kwargs):
         """Runway listens for planes arriving and sends them to gates after 3 ticks."""
         self.airport = airport
         self.runway_number = runway_number
         self.current_plane = None
-        self.state = RunwayState.FREE
+        self._state = RunwayState.FREE
         self.ticks_till_exit = -1
         self.topic_to_notify_on_exit = None
 
@@ -102,6 +113,19 @@ class Runway(AirportComponent):
             restored_runway.state = RunwayState(data["state"])
         return restored_runway
 
+    def update_runway_state_to_airport(self):
+        """Let the Airport know the runway state"""
+        self.client.publish(
+            self.airport_topic,
+            json.dumps(
+                {
+                    "msg_type": "runway_update",
+                    "runway_number": self.runway_number,
+                    "runway_state": self.state.value,
+                }
+            ),
+        )
+
     def handle_plane_arriving(self, plane: dict):
         """Handle the landing of a plane"""
         if self.current_plane:
@@ -109,6 +133,9 @@ class Runway(AirportComponent):
                 f"ERROR!!! Plane {plane['plane_id']} arrived but runway "
                 + f"is occupied by {self.current_plane['plane_id']}",
             )
+            return
+        if self.state != RunwayState.FREE:
+            self.logger.log("ERROR: Runway in use")
             return
 
         self.current_plane = Plane.from_dict(plane)
@@ -148,12 +175,16 @@ class Runway(AirportComponent):
 
     def handle_plane_departing(self, plane: dict):
         """Handle a plane departing from this runway"""
+        if self.state != RunwayState.FREE:
+            self.logger.log("ERROR: Runway in use")
+            return
         self.state = RunwayState.IN_USE_DEPARTING
         self.current_plane = Plane.from_dict(plane)
         self.current_plane.state = PlaneState.ON_DEPARTURE_RUNWAY
         self.ticks_till_exit = random.randint(
             Runway.RUNWAY_MIN_TICKS, Runway.RUNWAY_MAX_TICKS
         )
+        self.topic_to_notify_on_exit = "sky"
 
     def handle_message(self, message: dict):
         """Handle plane arrivals on the runway."""
@@ -167,7 +198,7 @@ class Runway(AirportComponent):
                     message["gate_topic"], message["gate_number"]
                 )
 
-        elif message["msg_type"] == "plane_departed":
+        elif message["msg_type"] == "plane_departing":
             if self.validate_message(["plane"], message):
                 self.handle_plane_departing(message["plane"])
 
@@ -198,7 +229,7 @@ class Runway(AirportComponent):
         if self.state == RunwayState.IN_USE_DEPARTING:
             self.current_plane.state = PlaneState.IN_SKY
             self.client.publish(
-                "sky",
+                self.topic_to_notify_on_exit,
                 json.dumps(
                     {
                         "msg_type": "plane_departure",
@@ -206,7 +237,8 @@ class Runway(AirportComponent):
                     }
                 ),
             )
-            self.current_plane = None
+        self.topic_to_notify_on_exit = None
+        self.current_plane = None
 
         if self.state == RunwayState.IN_USE_ARRIVING and self.topic_to_notify_on_exit:
             self.client.publish(
@@ -233,17 +265,6 @@ class Runway(AirportComponent):
 
         if self.current_plane is None:
             self.logger.log("Ready for next plane")
-
-        self.client.publish(
-            self.airport_topic,
-            json.dumps(
-                {
-                    "msg_type": "runway_update",
-                    "runway_number": self.runway_number,
-                    "runway_state": self.state.value,
-                }
-            ),
-        )
 
 
 if __name__ == "__main__":

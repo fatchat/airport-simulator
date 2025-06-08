@@ -78,7 +78,7 @@ class Sky(AirportComponent):
 
             if message["msg_type"] == "land_next_plane":
 
-                if self.validate_message(["airport", "runway"], message):
+                if self.validate_message(["airport", "runway_number"], message):
                     airport = message["airport"]
                     self.logger.log(
                         f"Request to send next plane received from {airport}."
@@ -86,10 +86,10 @@ class Sky(AirportComponent):
 
                     if self.plane_queues.get(airport):
 
-                        runway = message["runway"]
+                        runway_number = message["runway_number"]
                         plane: Plane = self.plane_queues[airport].pop(0)
                         plane.state = PlaneState.ON_ARRIVAL_RUNWAY
-                        runway_topic = f"airport/{airport}/runway/{runway}"
+                        runway_topic = f"airport/{airport}/runway/{runway_number}"
                         self.client.publish(
                             runway_topic,
                             json.dumps(
