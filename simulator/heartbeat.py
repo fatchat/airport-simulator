@@ -7,17 +7,24 @@ MQTT_BROKER = "localhost"
 
 parser = argparse.ArgumentParser(description="Heartbeat Publisher")
 parser.add_argument("interval", type=float, help="Heartbeat interval in seconds")
+parser.add_argument(
+    "--interactive", action="store_true", help="Press <Enter> to advance time"
+)
+parser.add_argument("--start-tick", help="tick to start at", default=0)
 args = parser.parse_args()
 
 
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.connect(MQTT_BROKER)
-    ticks = 0
+    ticks = args.start_tick
     while True:
         ticks += 1
         client.publish("heartbeat", json.dumps({"ticks": ticks}))
-        time.sleep(args.interval)
+        if args.interactive:
+            input()
+        else:
+            time.sleep(args.interval)
 
 
 if __name__ == "__main__":
