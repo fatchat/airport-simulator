@@ -16,8 +16,6 @@ from gate import GateState
 MQTT_BROKER = "localhost"
 REDIS_BROKER = "localhost"
 
-redis_client = Redis(host=REDIS_BROKER, port=6379)
-
 
 def comma_separated_list(value: str):
     """Convert a comma-separated string into a list for argparse."""
@@ -168,13 +166,8 @@ class Airport(AirportComponent):
             return True
         return False
 
-    def on_heartbeat(
-        self, mqtt_client, userdata, msg  # pylint:disable=unused-argument
-    ):
+    def handle_heartbeat(self):
         """Handle heartbeat messages to update gate state."""
-        redis_client.set(self.redis_key, json.dumps(self.to_dict()))
-        self.logger.log("Heartbeat received, state updated.")
-
         for gate_number, state in self.gates.items():
             if state == GateState.FREE.value:
                 self.logger.log(f"Gate {gate_number} is free, checking for planes.")
@@ -235,6 +228,7 @@ class Airport(AirportComponent):
 
 # == main
 if __name__ == "__main__":
+    redis_client = Redis(host=REDIS_BROKER, port=6379)
     parser = argparse.ArgumentParser(description="Airport Simulation")
     parser.add_argument("--airport", required=True, type=str, help="The airport name")
     parser.add_argument(

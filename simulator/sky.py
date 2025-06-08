@@ -12,8 +12,6 @@ from plane import Plane, PlaneState
 
 REDIS_BROKER = "localhost"
 
-redis_client = Redis(host=REDIS_BROKER, port=6379)
-
 
 class Sky(AirportComponent):
     """Representation of the sky where planes fly."""
@@ -129,11 +127,8 @@ class Sky(AirportComponent):
                     else:
                         self.logger.log("No plane data provided in departure message")
 
-    def on_heartbeat(
-        self, mqtt_client, userdata, msg
-    ):  # pylint:disable=unused-argument
+    def on_hearthandle_heartbeatbeat(self):
         """Handle heartbeat messages to add new planes."""
-        redis_client.set(self.redis_key, json.dumps(self.to_dict()))
         for plane in list(self.planes_flying):
             if plane.ticks_in_sky <= 0:
                 plane.state = PlaneState.CIRCLING
@@ -151,6 +146,7 @@ class Sky(AirportComponent):
 
 
 if __name__ == "__main__":
+    redis_client = Redis(host=REDIS_BROKER, port=6379)
     parser = argparse.ArgumentParser(description="Gate Simulation")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     sky = construct_or_restore(Sky, redis_client, "sky", parser.parse_args())

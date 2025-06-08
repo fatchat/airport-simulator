@@ -1,6 +1,7 @@
 """All components must derive from AirportComponent"""
 
 from typing import List
+import json
 from abc import ABC, abstractmethod
 import argparse
 import paho.mqtt.client as mqtt
@@ -32,9 +33,17 @@ class AirportComponent(ABC):
     def mqttclientname(self) -> str:
         """Name of the MQTT client we will create"""
 
-    @abstractmethod
-    def on_heartbeat(self, mqtt_client, userdata, msg):
+    def on_heartbeat(
+        self, mqtt_client, userdata, msg  # pylint:disable=unused-argument
+    ):
         """Handle heartbeat messages"""
+        if self.redis_client:
+            self.redis_client.set(self.redis_key, json.dumps(self.to_dict()))
+        self.handle_heartbeat()
+
+    @abstractmethod
+    def handle_heartbeat(self):
+        """Child-specific implementations"""
 
     @property
     @abstractmethod
@@ -80,4 +89,5 @@ class AirportComponent(ABC):
         self.client.subscribe(self.mqtt_topic)
         self.client.message_callback_add(self.mqtt_topic, self.on_message)
 
+        self.redis_client = None
         self.logger.log("Initialized")

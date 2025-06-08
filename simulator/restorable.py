@@ -12,11 +12,11 @@ def construct_or_restore(
     saved_state = redis_client.get(redis_key)
     if saved_state:
         print("Restoring saved state from Redis...")
-        return cls.from_dict(
-            json.loads(saved_state.decode()), verbose=arguments.verbose
+        obj = cls.from_dict(json.loads(saved_state.decode()), verbose=arguments.verbose)
+    else:
+        obj = cls.from_dict(
+            cls.args_to_dict(arguments),
+            verbose=arguments.verbose,
         )
-
-    return cls.from_dict(
-        cls.args_to_dict(arguments),
-        verbose=arguments.verbose,
-    )
+    obj.redis_client = redis_client
+    return obj

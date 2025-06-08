@@ -12,8 +12,6 @@ from plane import Plane, PlaneState
 
 REDIS_BROKER = "localhost"
 
-redis_client = Redis(host=REDIS_BROKER, port=6379)
-
 
 class GateState(Enum):
     """Enumeration for gate states."""
@@ -162,11 +160,8 @@ class Gate(AirportComponent):
                 if self.validate_message(["runway_topic"], message):
                     self.handle_runway_assigned(message["runway_topic"])
 
-    def on_heartbeat(
-        self, mqtt_client, userdata, msg
-    ):  # pylint:disable=unused-argument
+    def handle_heartbeat(self):
         """Handle heartbeat messages to update gate state."""
-        redis_client.set(self.redis_key, json.dumps(self.to_dict()))
         if self.current_plane:
             self.logger.log(
                 f"Holding plane {self.current_plane.plane_id} "
@@ -211,6 +206,7 @@ class Gate(AirportComponent):
 
 # == main
 if __name__ == "__main__":
+    redis_client = Redis(host=REDIS_BROKER, port=6379)
     parser = argparse.ArgumentParser(description="Gate Simulation")
     parser.add_argument("--airport", required=True, type=str, help="The airport name")
     parser.add_argument(
