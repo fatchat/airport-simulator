@@ -132,7 +132,6 @@ class Airport(AirportComponent):
         if len(self.waiting_for_departure_gate) > 0:
             plane = self.waiting_for_departure_gate.pop(0)
             plane.start_gate = gate_number
-            plane.state = PlaneState.AT_DEPARTURE_GATE
             gate_topic = f"airport/{self.airport}/gate/{gate_number}"
             self.client.publish(
                 gate_topic,

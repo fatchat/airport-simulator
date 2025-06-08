@@ -84,7 +84,6 @@ class Sky(AirportComponent):
 
                         runway_number = message["runway_number"]
                         plane: Plane = self.plane_queues[airport].pop(0)
-                        plane.state = PlaneState.ON_ARRIVAL_RUNWAY
                         runway_topic = f"airport/{airport}/runway/{runway_number}"
                         self.client.publish(
                             runway_topic,

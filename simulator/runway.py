@@ -172,7 +172,6 @@ class Runway(AirportComponent):
         )
         if self.current_plane:
             self.current_plane.end_gate = gate_number
-            self.current_plane.state = PlaneState.ON_ARRIVAL_RUNWAY
             self.state = RunwayState.IN_USE_ARRIVING
             self.advance_plane()
         else:
@@ -232,7 +231,6 @@ class Runway(AirportComponent):
             return
 
         if self.state == RunwayState.IN_USE_DEPARTING:
-            self.current_plane.state = PlaneState.IN_SKY
             self.client.publish(
                 self.topic_to_notify_on_exit,
                 json.dumps(

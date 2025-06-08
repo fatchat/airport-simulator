@@ -138,6 +138,7 @@ class Gate(AirportComponent):
     def handle_arriving_plane(self, plane: dict):
         """Handle a plane arriving at the gate from a runway."""
         self.current_plane = Plane.from_dict(plane)
+        self.current_plane.state = PlaneState.AT_ARRIVAL_GATE
         self.state = GateState.IN_USE_ARRIVING
         self.ticks_till_exit = random.randint(
             3, 5
@@ -150,6 +151,7 @@ class Gate(AirportComponent):
     def handle_departing_plane(self, plane: dict):
         """Handle a departing plane coming to the gate on its way to a runway"""
         self.current_plane = Plane.from_dict(plane)
+        self.current_plane.state = PlaneState.AT_DEPARTURE_GATE
         self.state = GateState.IN_USE_DEPARTING
         self.ticks_till_exit = random.randint(
             3, 5
@@ -162,7 +164,6 @@ class Gate(AirportComponent):
     def handle_departure_runway_assigned(self, runway_number: str, runway_topic: str):
         """Transition plane from gate to runway for departure"""
         if self.current_plane:
-            self.current_plane.state = PlaneState.ON_DEPARTURE_RUNWAY
             self.client.publish(
                 runway_topic,
                 json.dumps(
