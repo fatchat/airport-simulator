@@ -103,6 +103,7 @@ class Gate(AirportComponent):
                 self.current_plane.to_dict() if self.current_plane else None
             ),
             "state": self.state.value,
+            "ticks_till_exit": self.ticks_till_exit,
         }
 
     @staticmethod
@@ -113,6 +114,7 @@ class Gate(AirportComponent):
             restored_gate.current_plane = Plane.from_dict(data["current_plane"])
         if "state" in data:
             restored_gate.state = GateState(data["state"])
+        restored_gate.ticks_till_exit = data.get("ticks_till_exit", 0)
         return restored_gate
 
     def update_gate_state_to_airport(self):
