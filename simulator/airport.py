@@ -230,7 +230,7 @@ class Airport(AirportComponent):
 
     def handle_new_plane(self, end_airport: str):
         """Handle a new plane arriving at the airport hangar."""
-        plane = Plane(str(uuid4()), self.airport, end_airport)
+        plane = Plane(str(uuid4().hex[:6]), self.airport, end_airport)
         self.log(f"Plane {plane.plane_id} will depart to {plane.end_airport}")
         self.waiting_for_departure_gate.append(plane)
 
