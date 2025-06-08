@@ -262,11 +262,13 @@ class Airport(AirportComponent):
 
         elif message["msg_type"] == "requesting_arrival_gate":
             if self.validate_message(["runway_topic"], message):
-                self.waiting_for_arrival_gate.append(message["runway_topic"])
+                if message["runway_topic"] not in self.waiting_for_arrival_gate:
+                    self.waiting_for_arrival_gate.append(message["runway_topic"])
 
         elif message["msg_type"] == "requesting_departure_runway":
             if self.validate_message(["gate"], message):
-                self.waiting_for_departure_runway.append(message["gate"])
+                if message["gate"] not in self.waiting_for_departure_runway:
+                    self.waiting_for_departure_runway.append(message["gate"])
 
         elif message["msg_type"] == "register_runway":
             if self.validate_message(["runway_number"], message):
