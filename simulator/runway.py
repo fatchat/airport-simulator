@@ -22,6 +22,11 @@ class RunwayState(Enum):
     IN_USE_ARRIVING = "in-use-arriving"
 
 
+def runway_redis_key(airport: str, runway_number: str):
+    """key for storing this runway in redis"""
+    return f"airport-{airport}-runway-{runway_number}"
+
+
 class Runway(AirportComponent):
     """Representation of a runway at an airport."""
 
@@ -54,7 +59,7 @@ class Runway(AirportComponent):
     @property
     def redis_key(self) -> str:
         """Name of key for redis storage"""
-        return f"airport-{self.airport}-runway-{self.runway_number}"
+        return runway_redis_key(self.airport, self.runway_number)
 
     @property
     def loggername(self) -> str:
@@ -249,8 +254,12 @@ if __name__ == "__main__":
         "--runway-number", required=True, type=str, help="The runway number"
     )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    args = parser.parse_args()
 
     the_runway = construct_or_restore(
-        Runway, redis_client, "runway", parser.parse_args()
+        Runway,
+        redis_client,
+        runway_redis_key(args.airport, args.runway_number),
+        args,
     )
     the_runway.client.loop_forever()
