@@ -1,11 +1,14 @@
 """Airport Simulation using MQTT"""
 
 import json
+from typing import List, Dict
 import random
 import argparse
 from redis import Redis
-import paho.mqtt.client as mqtt
-from plane import Plane
+
+from restorable import construct_or_restore
+from interfaces import AirportComponent
+from plane import Plane, PlaneState
 from logger import Logger
 
 MQTT_BROKER = "localhost"
@@ -14,80 +17,143 @@ REDIS_BROKER = "localhost"
 redis_client = Redis(host=REDIS_BROKER, port=6379)
 
 
-class Sky:
+class Sky(AirportComponent):
+    """Representation of the sky where planes fly."""
+
+    @staticmethod
+    def args_to_dict(arguments: argparse.Namespace) -> dict:
+        """Convert command line arguments to a state dictionary."""
+        return {}
+
+    @property
+    def mqttclientname(self):
+        """Name of the MQTT client we will create"""
+        return "Sky"
+
+    @property
+    def loggername(self) -> str:
+        """Name of the logger"""
+        return "Sky"
+
     def __init__(self, **kwargs):
-        self.plane_queue = []
-        self.next_plane_id = 0
+        self.plane_queues: Dict[str, List[Plane]] = {}
+        self.planes_flying: List[Plane] = []
 
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "Sky")
-        self.client.connect(MQTT_BROKER)
-        self.client.subscribe("heartbeat")
-        self.client.subscribe("send_next_plane")
-        self.client.message_callback_add("heartbeat", self.on_heartbeat)
-        self.client.message_callback_add("send_next_plane", self.send_next_plane)
-
-        self.logger = Logger("Sky", self.client, verbose=kwargs.get("verbose", False))
-        self.logger.log("Sky initialized, waiting for planes...")
+        super().__init__(**kwargs)
 
     def to_dict(self):
         """Convert the Sky instance to a JSON representation."""
         return {
-            "plane_queue": [plane.to_dict() for plane in self.plane_queue],
-            "next_plane_id": self.next_plane_id,
+            "plane_queues": {
+                airport: [plane.to_dict() for plane in planes]
+                for airport, planes in self.plane_queues.items()
+            },
+            "planes_flying": self.planes_flying,
         }
 
     @staticmethod
     def from_dict(data, **kwargs):
         """Load the Sky state from a JSON representation."""
         restored_sky = Sky(**kwargs)
-        restored_sky.plane_queue = [
-            Plane.from_dict(plane_data) for plane_data in data.get("plane_queue", [])
+        planes = [
+            Plane.from_dict(plane_data) for plane_data in data.get("plane_queues", [])
         ]
-        restored_sky.next_plane_id = data.get("next_plane_id", 0)
+        restored_sky.plane_queues = {}
+        for plane in planes:
+            if plane.end_airport not in restored_sky.plane_queues:
+                restored_sky.plane_queues[plane.end_airport] = []
+            restored_sky.plane_queues[plane.end_airport].append(plane)
+        restored_sky.planes_flying = data.get("planes_flying", [])
         return restored_sky
 
-    def add_new_plane(self):
-        """Add a new plane to the queue."""
-        plane_id = f"plane_{self.next_plane_id}"
-        self.next_plane_id += 1
-        plane = Plane(plane_id)
-        self.plane_queue.append(plane)
-        self.logger.log(
-            f"New plane added: {plane.plane_id} -> gate {plane.destination_gate}",
-        )
+    @property
+    def mqtt_topic(self):
+        """Return the MQTT topic for the Sky."""
+        return "sky"
 
-    def send_next_plane(self, client, userdata, msg):  # pylint:disable=unused-argument
+    @property
+    def logger(self) -> Logger:
+        """Implement AirportComponent.logger"""
+        return self._logger
+
+    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
         """runway requests next plane"""
-        if self.plane_queue:
-            message = json.loads(msg.payload.decode())
-            if "gate_number" in message:
-                plane: Plane = self.plane_queue.pop(0)
-                plane.state = "on_runway"
-                plane.destination_gate = message["gate_number"]
-                self.client.publish("runway", json.dumps(plane.to_dict()))
-                self.logger.log(
-                    f"Sent plane {plane.plane_id} to runway; destination gate {plane.destination_gate}",
-                )
+        message = json.loads(msg.payload.decode())
+        if self.validate_message(["msg_type"], message):
 
-    def on_heartbeat(self, client, userdata, msg):  # pylint:disable=unused-argument
+            if message["msg_type"] == "land_next_plane":
+
+                if self.validate_message(["airport", "runway"], message):
+                    airport = message["airport"]
+                    self.logger.log(
+                        f"Request to send next plane received from {airport}."
+                    )
+
+                    if airport in self.plane_queues:
+
+                        runway = message["runway"]
+                        plane: Plane = self.plane_queues[airport].pop(0)
+                        plane.state = PlaneState.ON_ARRIVAL_RUNWAY
+                        runway_topic = f"airport/{airport}/runway/{runway}"
+                        self.client.publish(
+                            runway_topic,
+                            json.dumps(
+                                {
+                                    "msg_type": "plane_arrival",
+                                    "plane": plane.to_dict(),
+                                }
+                            ),
+                        )
+                        self.logger.log(
+                            f"Sent plane {plane.plane_id} to {runway_topic}"
+                        )
+                    else:
+                        self.logger.log(f"No planes available to land at {airport}")
+
+            elif message["msg_type"] == "plane_departure":
+
+                if self.validate_message(["plane"], message):
+                    plane_data = message["plane"]
+                    if plane_data:
+
+                        plane = Plane.from_dict(plane_data)
+                        plane.ticks_in_sky = random.randint(5, 10)
+                        plane.state = PlaneState.IN_SKY
+                        self.planes_flying.append(plane)
+
+                        self.logger.log(
+                            f"Plane {plane.plane_id} is departing to {plane.end_airport} "
+                            + f"and will be in the sky for {plane.ticks_in_sky} ticks."
+                        )
+
+                        if plane.end_airport not in self.plane_queues:
+                            self.plane_queues[plane.end_airport] = []
+                    else:
+                        self.logger.log("No plane data provided in departure message")
+
+    def on_heartbeat(
+        self, mqtt_client, userdata, msg
+    ):  # pylint:disable=unused-argument
         """Handle heartbeat messages to add new planes."""
         redis_client.set("sky", json.dumps(self.to_dict()))
-        if random.random() < 0.3:
-            self.add_new_plane()
-        else:
-            self.logger.log("No new plane added this tick")
+        for plane in self.planes_flying:
+            if plane.ticks_in_sky <= 0:
+                plane.state = PlaneState.CIRCLING
+                self.plane_queues[plane.end_airport].append(plane)
+                self.planes_flying.remove(plane)
+                self.logger.log(
+                    f"Plane {plane.plane_id} has started circling to land at {plane.end_airport}."
+                )
+            else:
+                plane.ticks_in_sky -= 1
+                self.logger.log(
+                    f"Plane {plane.plane_id} is still in the sky, "
+                    + f"{plane.ticks_in_sky} ticks remaining."
+                )
 
 
-parser = argparse.ArgumentParser(description="Gate Simulation")
-parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
-args = parser.parse_args()
-
-saved_state = redis_client.get("sky")
-if saved_state:
-    print("Restoring saved state from Redis...")
-    saved_state = json.loads(saved_state.decode())
-    sky = Sky.from_dict(saved_state, verbose=args.verbose)
-else:
-    sky = Sky(verbose=args.verbose)
-
-sky.client.loop_forever()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Gate Simulation")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    sky = construct_or_restore(Sky, redis_client, "sky", parser.parse_args())
+    sky.client.loop_forever()
