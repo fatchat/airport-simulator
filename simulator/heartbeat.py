@@ -1,4 +1,5 @@
 import time
+import json
 import argparse
 import paho.mqtt.client as mqtt
 
@@ -12,8 +13,10 @@ args = parser.parse_args()
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.connect(MQTT_BROKER)
+    ticks = 0
     while True:
-        client.publish("heartbeat")
+        ticks += 1
+        client.publish("heartbeat", json.dumps({"ticks": ticks}))
         time.sleep(args.interval)
 
 
