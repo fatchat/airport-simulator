@@ -11,9 +11,17 @@ class Logger:
         self.mqtt_client = mqtt_client
         self.verbose = verbose
 
+    def tag(self, message: str, tag: str) -> str:
+        """tags a message"""
+        return f"[{tag}] {message}"
+
     def log(self, message: str):
         """Log a message to the MQTT broker."""
-        message = f"[{self.name}] {message}"
+        message = self.tag(message, self.name)
         if self.verbose:
             print(message)
         self.mqtt_client.publish("logs", message)
+
+    def error(self, message: str):
+        """Log an error message to the MQTT broker."""
+        self.log(self.tag(message, "ERROR!"))
