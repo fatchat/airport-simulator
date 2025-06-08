@@ -11,9 +11,9 @@
     <template v-else>
       <h2 class="text-xl font-semibold mt-2 mb-2">Airport {{ props.name }}</h2>
       <p>Runways</p>
-      <p v-for="(state, runway) in data.runways" v-bind:key="runway">
-      <p>{{ runway }} {{ state }}</p>
-      </p>
+      <div v-for="(state, runway) in data.runways" v-bind:key="runway">
+        <p>{{ runway }} {{ state }}</p>
+      </div>
     </template>
   </div>
 </template>
