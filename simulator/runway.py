@@ -2,19 +2,16 @@
 
 import json
 import random
-from typing import List
 from enum import Enum
 
 import argparse
 from redis import Redis
-import paho.mqtt.client as mqtt
 
 from restorable import construct_or_restore
 from interfaces import AirportComponent
 from plane import Plane, PlaneState
 from logger import Logger
 
-MQTT_BROKER = "localhost"
 REDIS_BROKER = "localhost"
 
 redis_client = Redis(host=REDIS_BROKER, port=6379)
@@ -97,11 +94,6 @@ class Runway(AirportComponent):
         if "state" in data:
             restored_runway.state = RunwayState(data["state"])
         return restored_runway
-
-    @property
-    def logger(self) -> Logger:
-        """Implement AirportComponent.logger"""
-        return self._logger
 
     def handle_plane_arriving(self, plane: dict):
         """Handle the landing of a plane"""

@@ -11,7 +11,6 @@ from interfaces import AirportComponent
 from plane import Plane, PlaneState
 from logger import Logger
 
-MQTT_BROKER = "localhost"
 REDIS_BROKER = "localhost"
 
 redis_client = Redis(host=REDIS_BROKER, port=6379)
@@ -24,6 +23,11 @@ class Sky(AirportComponent):
     def args_to_dict(arguments: argparse.Namespace) -> dict:
         """Convert command line arguments to a state dictionary."""
         return {}
+
+    @property
+    def mqtt_topic(self):
+        """Return the MQTT topic for the Sky."""
+        return "sky"
 
     @property
     def mqttclientname(self):
@@ -65,16 +69,6 @@ class Sky(AirportComponent):
             restored_sky.plane_queues[plane.end_airport].append(plane)
         restored_sky.planes_flying = data.get("planes_flying", [])
         return restored_sky
-
-    @property
-    def mqtt_topic(self):
-        """Return the MQTT topic for the Sky."""
-        return "sky"
-
-    @property
-    def logger(self) -> Logger:
-        """Implement AirportComponent.logger"""
-        return self._logger
 
     def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
         """runway requests next plane"""

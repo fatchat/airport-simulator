@@ -7,7 +7,6 @@ from typing import List, Dict
 
 import argparse
 from redis import Redis
-import paho.mqtt.client as mqtt
 
 from restorable import construct_or_restore
 from interfaces import AirportComponent
@@ -128,11 +127,6 @@ class Airport(AirportComponent):
                 for plane_data in data["waiting_for_arrival_runway"]
             ]
         return restored_airport
-
-    @property
-    def logger(self) -> Logger:
-        """Implement AirportComponent.logger"""
-        return self._logger
 
     def assign_gate_for_departure(self, gate_number: str):
         """Assign a gate for a departing plane."""

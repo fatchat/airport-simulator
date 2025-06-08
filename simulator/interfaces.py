@@ -49,11 +49,6 @@ class AirportComponent(ABC):
     def loggername(self) -> str:
         """Name of the logger"""
 
-    @property
-    @abstractmethod
-    def logger(self) -> Logger:
-        """Subclasses must provide a logger."""
-
     def validate_message(self, required_keys: List[str], message: dict):
         """Validate that the message contains all required keys."""
         missing_keys = []
@@ -70,7 +65,7 @@ class AirportComponent(ABC):
         """constructor"""
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, self.mqttclientname)
         self.client.connect(MQTT_BROKER)
-        self._logger = Logger(
+        self.logger = Logger(
             self.loggername, self.client, verbose=kwargs.get("verbose", False)
         )
         self.client.subscribe("heartbeat")
