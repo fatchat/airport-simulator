@@ -5,6 +5,9 @@ description = "A simulator for airport operations, including flight scheduling, 
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "dotenv>=0.9.9",
     "paho-mqtt>=2.1.0",
+    "psycopg[binary]>=3.2.9",
     "redis>=6.2.0",
+    "sqlalchemy>=2.0.41",
 ]
