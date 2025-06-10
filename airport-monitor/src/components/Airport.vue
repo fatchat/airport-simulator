@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-md mx-auto w-64 border-2 border-white rounded-2xl shadow text-left p-2">
+  <div class="airport-card">
     <template v-if="loading">
       <p class="text-center text-gray-500">Loading...</p>
     </template>
@@ -9,7 +9,7 @@
     </template>
 
     <template v-else>
-      <h2 class="text-xl font-semibold mt-2 mb-2">Airport {{ props.name }}</h2>
+      <h3>Airport {{ props.name }}</h3>
 
       <div v-for="(state, runway) in data.runways" v-bind:key="runway">
         <Runway title="Runway" url="http://localhost:5001/state/runway" :airport="name" :runway_number="runway" />
@@ -67,3 +67,38 @@ onUnmounted(() => {
 })
 
 </script>
+
+<style scoped>
+.airport-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  /* Or use gap with grid/flex in parent */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.airport-card h3 {
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.details p {
+  margin-bottom: 6px;
+  line-height: 1.4;
+  color: #2c3e50;
+}
+
+.label {
+  font-weight: bold;
+  color: #555;
+  margin-right: 5px;
+}
+</style>

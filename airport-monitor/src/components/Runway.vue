@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-md mx-auto w-64  shadow">
+  <div class="runway-card">
     <template v-if="loading">
       <p class="text-center text-gray-500">Loading...</p>
     </template>
@@ -9,12 +9,15 @@
     </template>
 
     <template v-else>
-      <h2 class="text-xl font-semibold mt-2 mb-2">Runway {{ props.runway_number }} / {{ props.airport }}</h2>
-      <p>{{ data.state }}</p>
-      <div class="space-y-1" v-if="data.current_plane">
-        <p>{{ data.current_plane.plane_id }} -> {{ data.current_plane.destination_gate }}</p>
-        <p><span class="font-medium">Arriving in...</span> {{ data.ticks_till_exit }}</p>
-      </div>
+      <h3>
+        <div class="flex justify-between">
+          <p>Runway {{ props.runway_number }} / {{ props.airport }}</p>
+          <p v-if="data.ticks_till_exit > 0" class="text-sm">{{ data.ticks_till_exit }}</p>
+        </div>
+      </h3>
+      <template v-if="data.current_plane">
+        <Plane :plane="data.current_plane" />
+      </template>
     </template>
   </div>
 </template>
@@ -22,6 +25,7 @@
 <script setup>
 
 import { ref, onMounted, onUnmounted } from 'vue'
+import Plane from './Plane.vue';
 
 const props = defineProps({
   title: String,
@@ -63,3 +67,38 @@ onUnmounted(() => {
 })
 
 </script>
+
+<style scoped>
+.runway-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  /* Or use gap with grid/flex in parent */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.runway-card h3 {
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.details p {
+  margin-bottom: 6px;
+  line-height: 1.4;
+  color: #2c3e50;
+}
+
+.label {
+  font-weight: bold;
+  color: #555;
+  margin-right: 5px;
+}
+</style>
