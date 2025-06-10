@@ -10,7 +10,7 @@ parser.add_argument("interval", type=float, help="Heartbeat interval in seconds"
 parser.add_argument(
     "--interactive", action="store_true", help="Press <Enter> to advance time"
 )
-parser.add_argument("--start-tick", help="tick to start at", default=0)
+parser.add_argument("--start-tick", help="tick to start at", default=0, type=int)
 args = parser.parse_args()
 
 

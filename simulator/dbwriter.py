@@ -31,7 +31,7 @@ metadata = MetaData()
 flights = Table(
     "flights",
     metadata,
-    Column("flight_id", Integer, primary_key=True),
+    Column("flight_id", String, primary_key=True),
     Column("plane_id", String, primary_key=True),
     Column("from_airport", String),
     Column("to_airport", String),
@@ -45,7 +45,7 @@ plane_events = Table(
     "plane_events",
     metadata,
     Column("plane_id", String),
-    Column("flight_id", Integer),
+    Column("flight_id", String),
     Column("ticks", Integer),
     Column("from_state", String),
     Column("to_state", String),

@@ -1,6 +1,8 @@
 """Plane class for airport simulation."""
 
 from enum import Enum
+from uuid import uuid4
+import json
 
 
 class PlaneState(Enum):
@@ -18,8 +20,9 @@ class PlaneState(Enum):
 class Plane:
     """Plane class for airport simulation."""
 
-    def __init__(self, plane_id: str, start_airport: str, end_airport: str):
-        self.plane_id = str(plane_id)
+    def __init__(self, start_airport: str, end_airport: str):
+        self.plane_id = str(uuid4().hex[:12])
+        self.flight_id = str(uuid4().hex[:12])
 
         self.start_airport = start_airport
         self.end_airport = end_airport
@@ -36,6 +39,7 @@ class Plane:
         """Convert the Plane instance to a dictionary for MQTT messages."""
         return {
             "plane_id": self.plane_id,
+            "flight_id": self.flight_id,
             "start_airport": self.start_airport,
             "end_airport": self.end_airport,
             "start_gate": self.start_gate,
@@ -47,9 +51,28 @@ class Plane:
     @staticmethod
     def from_dict(data: dict):
         """Initialize the Plane instance from a dictionary."""
-        plane = Plane(data["plane_id"], data["start_airport"], data["end_airport"])
+        plane = Plane(data["start_airport"], data["end_airport"])
+        plane.plane_id = data["plane_id"]
+        plane.flight_id = data.get("flight_id")
         plane.start_gate = data["start_gate"]
         plane.end_gate = data["end_gate"]
         plane.state = PlaneState(data["state"])
         plane.ticks_in_sky = data["ticks_in_sky"]
         return plane
+
+    def set_state(self, new_state: PlaneState, mqtt_client, ticks: int):
+        """on state changes, send state to dbwriter"""
+        mqtt_client.publish(
+            "events",
+            json.dumps(
+                {
+                    "event_type": "plane-event",
+                    "plane_id": self.plane_id,
+                    "flight_id": self.flight_id,
+                    "ticks": ticks,
+                    "from_state": self.state.value,
+                    "to_state": new_state.value,
+                }
+            ),
+        )
+        self.state = new_state

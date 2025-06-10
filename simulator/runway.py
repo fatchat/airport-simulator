@@ -149,7 +149,9 @@ class Runway(AirportComponent):
         self.ticks_till_exit = random.randint(
             Runway.RUNWAY_MIN_TICKS, Runway.RUNWAY_MAX_TICKS
         )
-        self.current_plane.state = PlaneState.ON_ARRIVAL_RUNWAY
+        self.current_plane.set_state(
+            PlaneState.ON_ARRIVAL_RUNWAY, self.client, self.ticks
+        )
         self.state = RunwayState.IN_USE_ARRIVING
         self.topic_to_notify_on_exit = None  # don't have a gate yet
 
@@ -184,7 +186,9 @@ class Runway(AirportComponent):
             return
         self.state = RunwayState.IN_USE_DEPARTING
         self.current_plane = Plane.from_dict(plane)
-        self.current_plane.state = PlaneState.ON_DEPARTURE_RUNWAY
+        self.current_plane.set_state(
+            PlaneState.ON_DEPARTURE_RUNWAY, self.client, self.ticks
+        )
         self.ticks_till_exit = random.randint(
             Runway.RUNWAY_MIN_TICKS, Runway.RUNWAY_MAX_TICKS
         )
@@ -268,6 +272,7 @@ class Runway(AirportComponent):
 
         if self.current_plane is None:
             self.log("Ready for next plane")
+            self.state = RunwayState.FREE
 
 
 if __name__ == "__main__":

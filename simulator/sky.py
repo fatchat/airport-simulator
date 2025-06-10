@@ -106,7 +106,7 @@ class Sky(AirportComponent):
 
                         plane = Plane.from_dict(plane_data)
                         plane.ticks_in_sky = random.randint(5, 10)
-                        plane.state = PlaneState.IN_SKY
+                        plane.set_state(PlaneState.IN_SKY, self.client, self.ticks)
                         self.planes_flying.append(plane)
 
                         self.log(
@@ -123,7 +123,7 @@ class Sky(AirportComponent):
         """Handle heartbeat messages to add new planes."""
         for plane in list(self.planes_flying):
             if plane.ticks_in_sky <= 0:
-                plane.state = PlaneState.CIRCLING
+                plane.set_state(PlaneState.CIRCLING, self.client, self.ticks)
                 self.plane_queues[plane.end_airport].append(plane)
                 self.planes_flying.remove(plane)
                 self.log(
