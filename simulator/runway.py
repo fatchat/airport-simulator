@@ -152,6 +152,7 @@ class Runway(AirportComponent):
         self.current_plane.set_state(
             PlaneState.ON_ARRIVAL_RUNWAY, self.client, self.ticks
         )
+        self.current_plane.update_flight(self.client, to_runway=self.runway_number)
         self.state = RunwayState.IN_USE_ARRIVING
         self.topic_to_notify_on_exit = None  # don't have a gate yet
 
@@ -189,6 +190,7 @@ class Runway(AirportComponent):
         self.current_plane.set_state(
             PlaneState.ON_DEPARTURE_RUNWAY, self.client, self.ticks
         )
+        self.current_plane.update_flight(self.client, from_runway=self.runway_number)
         self.ticks_till_exit = random.randint(
             Runway.RUNWAY_MIN_TICKS, Runway.RUNWAY_MAX_TICKS
         )

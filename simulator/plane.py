@@ -76,3 +76,30 @@ class Plane:
             ),
         )
         self.state = new_state
+
+    def init_flight(self, mqtt_client):
+        """update a flight for this plane"""
+        mqtt_client.publish(
+            "events",
+            json.dumps(
+                {
+                    "event_type": "init-flight",
+                    "flight_id": self.flight_id,
+                    "plane_id": self.plane_id,
+                }
+            ),
+        )
+
+    def update_flight(self, mqtt_client, **kwargs):
+        """update a flight for this plane"""
+        mqtt_client.publish(
+            "events",
+            json.dumps(
+                {
+                    "event_type": "update-flight",
+                    "flight_id": self.flight_id,
+                    "plane_id": self.plane_id,
+                    **kwargs,
+                }
+            ),
+        )

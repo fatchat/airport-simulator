@@ -141,6 +141,7 @@ class Gate(AirportComponent):
         self.current_plane.set_state(
             PlaneState.AT_ARRIVAL_GATE, self.client, self.ticks
         )
+        self.current_plane.update_flight(self.client, to_gate=self.gate_number)
         self.state = GateState.IN_USE_ARRIVING
         self.ticks_till_exit = random.randint(
             3, 5
@@ -156,6 +157,7 @@ class Gate(AirportComponent):
         self.current_plane.set_state(
             PlaneState.AT_DEPARTURE_GATE, self.client, self.ticks
         )
+        self.current_plane.update_flight(self.client, from_gate=self.gate_number)
         self.state = GateState.IN_USE_DEPARTING
         self.ticks_till_exit = random.randint(
             3, 5

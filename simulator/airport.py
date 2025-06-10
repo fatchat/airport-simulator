@@ -232,6 +232,10 @@ class Airport(AirportComponent):
         plane = Plane(start_airport=self.airport, end_airport=end_airport)
         self.log(f"Plane {plane.plane_id} will depart to {plane.end_airport}")
         self.waiting_for_departure_gate.append(plane)
+        plane.init_flight(self.client)
+        plane.update_flight(
+            self.client, from_airport=plane.start_airport, to_airport=plane.end_airport
+        )
 
     def handle_register_runway(self, runway_number: str):
         """Register a new runway for this Airport"""
