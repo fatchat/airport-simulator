@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-md mx-auto w-64 border-2 border-white rounded-2xl shadow">
+  <div class="max-w-md mx-auto w-64  shadow">
     <template v-if="loading">
       <p class="text-center text-gray-500">Loading...</p>
     </template>
