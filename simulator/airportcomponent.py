@@ -2,13 +2,14 @@
 
 from typing import List
 import json
+import os
 from abc import ABC, abstractmethod
 import argparse
 import paho.mqtt.client as mqtt
 
 from logger import Logger
 
-MQTT_BROKER = "localhost"
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
 
 
 class AirportComponent(ABC):
