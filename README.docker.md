@@ -33,10 +33,16 @@ docker build -t airport-simulator-base -f Dockerfile.base .
 docker-compose up -d mosquitto redis postgres
 ```
 
-3. Start the heartbeat and dbwriter:
+3. Start the heartbeat, dbwriter and airport-monitor-server:
 
 ```bash
-docker-compose up -d heartbeat dbwriter
+docker-compose up -d heartbeat dbwriter airport-monitor-server
+```
+
+4. Start the sky:
+
+```bash
+docker-compose up -d sky
 ```
 
 ## Adding Components
