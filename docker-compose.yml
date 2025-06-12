@@ -90,6 +90,20 @@ services:
     profiles:
       - donotstart
 
+  airport-monitor-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.airport-monitor-server
+    depends_on:
+      - redis
+    ports:
+      - "5001:5001"  # Expose HTTP port
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - airport-network
+
 networks:
   airport-network:
     driver: bridge
