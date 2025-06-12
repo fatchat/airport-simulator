@@ -9,9 +9,15 @@
     </template>
 
     <template v-else>
-      <h3>Sky</h3>
+      <h3>In Flight</h3>
       <p>{{ data.planes_flying.length }} planes in the air</p>
       <Plane v-for="plane in data.planes_flying" :key="plane.plane_id" :plane="plane" />
+
+      <h3>Circling</h3>
+      <div v-for="(planes, airport) in data.plane_queues" :key="airport">
+        <p class="text-black text-left">{{ airport }}</p>
+        <Plane v-for="plane in planes" :key="plane.plane_id" :plane="plane" />
+      </div>
 
     </template>
   </div>
