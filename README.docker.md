@@ -30,7 +30,7 @@ docker build -t airport-simulator-base -f Dockerfile.base .
 2. Start the core services:
 
 ```bash
-docker-compose up -d mosquitto redis postgres
+docker-compose up -d mosquitto redis
 ```
 
 3. Start the heartbeat, dbwriter and airport-monitor-server:

@@ -15,20 +15,6 @@ services:
     networks:
       - airport-network
 
-  postgres:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-airport}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airport}
-      POSTGRES_DB: ${POSTGRES_DB:-airport}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./simulator/tabledefinitions:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
-    networks:
-      - airport-network
-
   heartbeat:
     build:
       context: .
@@ -45,11 +31,12 @@ services:
       dockerfile: Dockerfile.dbwriter
     depends_on:
       - mosquitto
-      - postgres
     environment:
       # Can be overridden with external PostgreSQL connection string
       CONNECTION_STRING: ${CONNECTION_STRING:-postgresql://airport:airport@postgres:5432/airport}
     command: "--verbose"
+    ports:
+    - "5432:5432"
     networks:
       - airport-network
 
