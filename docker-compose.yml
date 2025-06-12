@@ -90,6 +90,16 @@ services:
     profiles:
       - donotstart
 
+  sky:
+    build:
+      context: .
+      dockerfile: Dockerfile.sky
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - airport-network
+
   airport-monitor-server:
     build:
       context: .

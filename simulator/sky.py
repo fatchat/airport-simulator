@@ -1,5 +1,6 @@
 """Airport Simulation using MQTT"""
 
+import os
 import json
 from typing import List, Dict
 import random
@@ -10,7 +11,7 @@ from restorable import construct_or_restore
 from airportcomponent import AirportComponent
 from plane import Plane, PlaneState
 
-REDIS_BROKER = "localhost"
+REDIS_BROKER = os.environ.get("REDIS_BROKER", "localhost")
 
 
 class Sky(AirportComponent):
