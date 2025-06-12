@@ -13,7 +13,7 @@ if [ "$COMPONENT_TYPE" == "airport" ]; then
 elif [ "$COMPONENT_TYPE" == "runway" ]; then
   docker-compose run -d --name "runway-$AIRPORT-$NUMBER" runway --airport $AIRPORT --runway-number $NUMBER --verbose
 elif [ "$COMPONENT_TYPE" == "gate" ]; then
-  docker-compose run -d --name "gate-$AIRPORT-$NUMBER" gate --airport $AIRPORT $NUMBER --verbose
+  docker-compose run -d --name "gate-$AIRPORT-$NUMBER" gate --airport $AIRPORT --gate-number $NUMBER --verbose
 else
   echo "Unknown component type: $COMPONENT_TYPE"
   echo "Usage: ./add-component.sh [component-type] [airport] [number]"

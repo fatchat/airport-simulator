@@ -245,7 +245,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Gate Simulation")
     parser.add_argument("--airport", required=True, type=str, help="The airport name")
     parser.add_argument(
-        "gate_number",
+        "--gate-number",
         type=str,
         help="The gate number to simulate (e.g., '1', '2', etc.)",
     )
