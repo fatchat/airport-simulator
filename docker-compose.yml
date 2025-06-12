@@ -1,0 +1,122 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - airport-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - airport-network
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airport}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airport}
+      POSTGRES_DB: ${POSTGRES_DB:-airport}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./simulator/tabledefinitions:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - airport-network
+
+  heartbeat:
+    build:
+      context: .
+      dockerfile: Dockerfile.heartbeat
+    depends_on:
+      - mosquitto
+    command: "1"  # 1 second interval
+    networks:
+      - airport-network
+
+  dbwriter:
+    build:
+      context: .
+      dockerfile: Dockerfile.dbwriter
+    depends_on:
+      - mosquitto
+      - postgres
+    environment:
+      # Can be overridden with external PostgreSQL connection string
+      CONNECTION_STRING: ${CONNECTION_STRING:-postgresql://airport:airport@postgres:5432/airport}
+    command: "--verbose"
+    networks:
+      - airport-network
+
+  # These services are used as templates for the add-component.sh script
+  airport:
+    build:
+      context: .
+      dockerfile: Dockerfile.airport
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - airport-network
+    profiles:
+      - donotstart
+
+  runway:
+    build:
+      context: .
+      dockerfile: Dockerfile.runway
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - airport-network
+    profiles:
+      - donotstart
+
+  gate:
+    build:
+      context: .
+      dockerfile: Dockerfile.gate
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - airport-network
+    profiles:
+      - donotstart
+
+  sky:
+    build:
+      context: .
+      dockerfile: Dockerfile.sky
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - airport-network
+
+  airport-monitor-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.airport-monitor-server
+    depends_on:
+      - redis
+    ports:
+      - "5001:5001"  # Expose HTTP port
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - airport-network
+
+networks:
+  airport-network:
+    driver: bridge
+
+volumes:
+  postgres-data:

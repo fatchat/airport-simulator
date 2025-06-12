@@ -10,4 +10,4 @@ wheels/
 .venv
 
 # Environment variables
-simulator/dbwriter.env
+.env

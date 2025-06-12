@@ -2,6 +2,7 @@
 
 import json
 import random
+import os
 from uuid import uuid4
 from typing import List, Dict
 
@@ -14,8 +15,8 @@ from plane import Plane, PlaneState
 from gate import GateState
 from runway import RunwayState
 
-MQTT_BROKER = "localhost"
-REDIS_BROKER = "localhost"
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
+REDIS_BROKER = os.environ.get("REDIS_BROKER", "localhost")
 
 
 def comma_separated_list(value: str):

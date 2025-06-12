@@ -2,6 +2,7 @@
 
 import json
 import random
+import os
 from enum import Enum
 
 import argparse
@@ -11,7 +12,7 @@ from restorable import construct_or_restore
 from airportcomponent import AirportComponent
 from plane import Plane, PlaneState
 
-REDIS_BROKER = "localhost"
+REDIS_BROKER = os.environ.get("REDIS_BROKER", "localhost")
 
 
 class RunwayState(Enum):

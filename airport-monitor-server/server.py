@@ -2,6 +2,7 @@
 
 import json
 import argparse
+import os
 from redis import Redis
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -13,7 +14,12 @@ args = parser.parse_args()
 app = Flask("Sky")
 CORS(app)
 
-redis = Redis(host="localhost", port=6379, db=0, decode_responses=True)
+redis = Redis(
+    host=os.environ.get("REDIS_HOST", "redis"),
+    port=int(os.environ.get("REDIS_PORT", 6379)),
+    db=0,
+    decode_responses=True,
+)
 
 
 def validate_args(request_args, required_keys: list):

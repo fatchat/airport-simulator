@@ -1,0 +1,6 @@
+FROM airport-simulator-base
+
+ENV MQTT_BROKER=mosquitto
+ENV REDIS_BROKER=redis
+
+ENTRYPOINT ["python", "sky.py"]

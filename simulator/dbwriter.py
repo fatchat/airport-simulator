@@ -5,7 +5,6 @@ import sys
 import argparse
 import json
 import paho.mqtt.client as mqtt
-from dotenv import load_dotenv
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -17,14 +16,14 @@ from sqlalchemy import (
     insert,
 )
 
-MQTT_BROKER = "localhost"
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
 
-load_dotenv("dbwriter.env")
-if not os.getenv("CONNECTION_STRING"):
-    print("must set CONNECTION_STRING in dbwriter.env first")
+CONNECTION_STRING = os.environ.get("CONNECTION_STRING")
+if not CONNECTION_STRING:
+    print("CONNECTION_STRING environment variable must be set")
     sys.exit(1)
 
-engine = create_engine(os.getenv("CONNECTION_STRING"))
+engine = create_engine(CONNECTION_STRING)
 
 metadata = MetaData()
 

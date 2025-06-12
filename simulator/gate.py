@@ -2,6 +2,7 @@
 
 import random
 import json
+import os
 from enum import Enum
 import argparse
 from redis import Redis
@@ -10,7 +11,7 @@ from restorable import construct_or_restore
 from airportcomponent import AirportComponent
 from plane import Plane, PlaneState
 
-REDIS_BROKER = "localhost"
+REDIS_BROKER = os.environ.get("REDIS_BROKER", "localhost")
 
 
 class GateState(Enum):
@@ -83,16 +84,16 @@ class Gate(AirportComponent):
 
         super().__init__(**kwargs)
 
-        self.client.on_disconnect = lambda client, userdata, rc: client.publish(
-            self.airport_topic,
-            json.dumps(
-                {
-                    "msg_type": "gate_update",
-                    "gate_number": gate_number,
-                    "gate_state": GateState.CLOSED.value,
-                }
-            ),
-        )
+        # self.client.on_disconnect = lambda client, userdata, rc: client.publish(
+        #     self.airport_topic,
+        #     json.dumps(
+        #         {
+        #             "msg_type": "gate_update",
+        #             "gate_number": gate_number,
+        #             "gate_state": GateState.CLOSED.value,
+        #         }
+        #     ),
+        # )
 
         self.client.publish(
             self.airport_topic,
@@ -244,7 +245,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Gate Simulation")
     parser.add_argument("--airport", required=True, type=str, help="The airport name")
     parser.add_argument(
-        "gate_number",
+        "--gate-number",
         type=str,
         help="The gate number to simulate (e.g., '1', '2', etc.)",
     )
