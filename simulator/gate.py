@@ -84,16 +84,16 @@ class Gate(AirportComponent):
 
         super().__init__(**kwargs)
 
-        self.client.on_disconnect = lambda client, userdata, rc: client.publish(
-            self.airport_topic,
-            json.dumps(
-                {
-                    "msg_type": "gate_update",
-                    "gate_number": gate_number,
-                    "gate_state": GateState.CLOSED.value,
-                }
-            ),
-        )
+        # self.client.on_disconnect = lambda client, userdata, rc: client.publish(
+        #     self.airport_topic,
+        #     json.dumps(
+        #         {
+        #             "msg_type": "gate_update",
+        #             "gate_number": gate_number,
+        #             "gate_state": GateState.CLOSED.value,
+        #         }
+        #     ),
+        # )
 
         self.client.publish(
             self.airport_topic,
