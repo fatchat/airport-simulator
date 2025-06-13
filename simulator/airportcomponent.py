@@ -35,7 +35,10 @@ class AirportComponent(ABC):
         """Name of the MQTT client we will create"""
 
     def on_heartbeat(
-        self, mqtt_client, userdata, msg  # pylint:disable=unused-argument
+        self,
+        mqtt_client,  # pylint:disable=unused-argument
+        userdata,  # pylint:disable=unused-argument
+        msg: mqtt.MQTTMessage,
     ):
         """Handle heartbeat messages"""
         if self.redis_client:
@@ -61,7 +64,12 @@ class AirportComponent(ABC):
     def handle_message(self, message: dict):
         """Client-specific implementation"""
 
-    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
+    def on_message(
+        self,
+        mqtt_client,  # pylint:disable=unused-argument
+        userdata,  # pylint:disable=unused-argument
+        msg: mqtt.MQTTMessage,
+    ):
         """Handler for mqtt_topic"""
         payload = msg.payload.decode()
         try:
@@ -74,6 +82,22 @@ class AirportComponent(ABC):
             self.error(message)
             return
         self.handle_message(message)
+
+    def on_admin(
+        self,
+        mqtt_client,  # pylint:disable=unused-argument
+        userdata,  # pylint:disable=unused-argument
+        msg: mqtt.MQTTMessage,
+    ):
+        """Handler for mqtt_topic"""
+        payload = msg.payload.decode()
+        try:
+            message = json.loads(payload)
+        except json.decoder.JSONDecodeError:
+            self.error(f"received non-json message: [{payload}]")
+            return
+        if message["command"] == "quit":
+            self.client.disconnect()
 
     @property
     @abstractmethod
@@ -115,6 +139,9 @@ class AirportComponent(ABC):
         )
         self.client.subscribe("heartbeat")
         self.client.message_callback_add("heartbeat", self.on_heartbeat)
+
+        self.client.subscribe("admin")
+        self.client.message_callback_add("admin", self.on_admin)
 
         self.client.subscribe(self.mqtt_topic)
         self.client.message_callback_add(self.mqtt_topic, self.on_message)
