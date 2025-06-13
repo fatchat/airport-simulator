@@ -34,7 +34,7 @@ services:
     environment:
       # Can be overridden with external PostgreSQL connection string
       CONNECTION_STRING: ${CONNECTION_STRING:-postgresql://airport:airport@postgres:5432/airport}
-    command: "2025-01-01T06:00:00 --verbose"
+    command: ["2025-01-01T06:00:00",  "--verbose"]
     ports:
     - "5432:5432"
     networks:
