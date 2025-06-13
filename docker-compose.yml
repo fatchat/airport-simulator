@@ -87,6 +87,16 @@ services:
     networks:
       - airport-network
 
+  planegenerator:
+    build:
+      context: .
+      dockerfile: Dockerfile.planegenerator
+    depends_on:
+      - mosquitto
+      - redis
+    networks:
+      - airport-network
+
   airport-monitor-server:
     build:
       context: .

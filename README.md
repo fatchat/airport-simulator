@@ -38,6 +38,7 @@ docker build -t airport-simulator-sky -f Dockerfile.sky .
 docker build -t airport-simulator-dbwriter -f Dockerfile.dbwriter .
 docker build -t airport-simulator-heartbeat -f Dockerfile.heartbeat .
 docker build -t airport-simulator-airport-monitor-server -f Dockerfile.airport-monitor-server .
+docker build -t airport-simulator-planegenerator -f Dockerfile.planegenerator .
 ```
 
 2. Start the core services:

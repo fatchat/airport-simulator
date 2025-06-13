@@ -1,0 +1,5 @@
+FROM airport-simulator-base
+
+ENV MQTT_BROKER=mosquitto
+
+ENTRYPOINT ["python", "planegenerator.py"]
