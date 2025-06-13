@@ -44,19 +44,19 @@ docker build -t airport-simulator-planegenerator -f Dockerfile.planegenerator .
 2. Start the core services:
 
 ```bash
-docker-compose up -d mosquitto redis
+docker compose up -d mosquitto redis
 ```
 
 3. Start the heartbeat, dbwriter and airport-monitor-server:
 
 ```bash
-docker-compose up -d heartbeat dbwriter airport-monitor-server
+docker compose up -d heartbeat dbwriter airport-monitor-server
 ```
 
 4. Start the sky:
 
 ```bash
-docker-compose up -d sky
+docker compose up -d sky
 ```
 
 ## Adding Components
@@ -102,7 +102,7 @@ To connect to a remote PostgreSQL instance instead of the local one:
 3. Restart the dbwriter service:
 
 ```bash
-docker-compose restart dbwriter
+docker compose restart dbwriter
 ```
 
 ## Environment Variables
