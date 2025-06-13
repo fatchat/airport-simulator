@@ -55,7 +55,7 @@ class Runway(AirportComponent):
     @property
     def mqttclientname(self):
         """Name of the MQTT client we will create"""
-        return f"Runway_{self.runway_number}"
+        return f"Airport_{self.airport}_Runway_{self.runway_number}"
 
     @property
     def redis_key(self) -> str:
@@ -65,7 +65,7 @@ class Runway(AirportComponent):
     @property
     def loggername(self) -> str:
         """Name of the logger"""
-        return f"Airport/{self.airport}/Runway/{self.runway_number}"
+        return f"{self.airport} Runway {self.runway_number}"
 
     @property
     def state(self) -> RunwayState:
@@ -78,6 +78,15 @@ class Runway(AirportComponent):
         self._state = RunwayState(newstate)
         self.update_runway_state_to_airport()
 
+    def on_child_connect(self):
+        """called by airportcomponent.on_connect"""
+        self.client.publish(
+            self.airport_topic,
+            json.dumps(
+                {"msg_type": "register_runway", "runway_number": self.runway_number}
+            ),
+        )
+
     def __init__(self, airport: str, runway_number: str, **kwargs):
         """Runway listens for planes arriving and sends them to gates after 3 ticks."""
         self.airport = airport
@@ -88,13 +97,6 @@ class Runway(AirportComponent):
         self.topic_to_notify_on_exit = None
 
         super().__init__(**kwargs)
-
-        self.client.publish(
-            self.airport_topic,
-            json.dumps(
-                {"msg_type": "register_runway", "runway_number": self.runway_number}
-            ),
-        )
 
     def to_dict(self):
         """Convert the Runway instance to a JSON representation."""

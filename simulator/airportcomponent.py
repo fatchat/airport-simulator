@@ -35,7 +35,10 @@ class AirportComponent(ABC):
         """Name of the MQTT client we will create"""
 
     def on_heartbeat(
-        self, mqtt_client, userdata, msg  # pylint:disable=unused-argument
+        self,
+        mqtt_client,  # pylint:disable=unused-argument
+        userdata,  # pylint:disable=unused-argument
+        msg: mqtt.MQTTMessage,
     ):
         """Handle heartbeat messages"""
         if self.redis_client:
@@ -61,7 +64,12 @@ class AirportComponent(ABC):
     def handle_message(self, message: dict):
         """Client-specific implementation"""
 
-    def on_message(self, mqtt_client, userdata, msg):  # pylint:disable=unused-argument
+    def on_message(
+        self,
+        mqtt_client,  # pylint:disable=unused-argument
+        userdata,  # pylint:disable=unused-argument
+        msg: mqtt.MQTTMessage,
+    ):
         """Handler for mqtt_topic"""
         payload = msg.payload.decode()
         try:
@@ -74,6 +82,23 @@ class AirportComponent(ABC):
             self.error(message)
             return
         self.handle_message(message)
+
+    def on_admin(
+        self,
+        mqtt_client,  # pylint:disable=unused-argument
+        userdata,  # pylint:disable=unused-argument
+        msg: mqtt.MQTTMessage,
+    ):
+        """Handler for mqtt_topic"""
+        payload = msg.payload.decode()
+        try:
+            message = json.loads(payload)
+        except json.decoder.JSONDecodeError:
+            self.error(f"received non-json message: [{payload}]")
+            return
+        if message["command"] == "quit":
+            self.log("Received quit message, disconnecting from mqtt broker")
+            self.client.disconnect()
 
     @property
     @abstractmethod
@@ -105,19 +130,39 @@ class AirportComponent(ABC):
             return False
         return True
 
+    @abstractmethod
+    def on_child_connect(self):
+        """called by on_connect once connected to the mqtt broker"""
+
+    def on_connect(
+        self, mqtt_client: mqtt.Client, userdata, connect_flags, reason_code, properties
+    ):
+        """callback on connection"""
+        if reason_code == 0:
+            self.logger = Logger(
+                self.loggername, self.client, verbose=userdata.get("verbose", False)
+            )
+            self.client.subscribe("heartbeat")
+            self.client.message_callback_add("heartbeat", self.on_heartbeat)
+
+            self.client.subscribe("admin")
+            self.client.message_callback_add("admin", self.on_admin)
+
+            self.client.subscribe(self.mqtt_topic)
+            self.client.message_callback_add(self.mqtt_topic, self.on_message)
+
+            self.log("Initialized")
+
+            self.on_child_connect()
+        else:
+            raise RuntimeError("failed to connect to mqtt broker")
+
     def __init__(self, **kwargs):
         """constructor"""
         self.ticks = -1
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, self.mqttclientname)
-        self.client.connect(MQTT_BROKER)
-        self.logger = Logger(
-            self.loggername, self.client, verbose=kwargs.get("verbose", False)
-        )
-        self.client.subscribe("heartbeat")
-        self.client.message_callback_add("heartbeat", self.on_heartbeat)
-
-        self.client.subscribe(self.mqtt_topic)
-        self.client.message_callback_add(self.mqtt_topic, self.on_message)
-
+        self.logger = None
         self.redis_client = None
-        self.log("Initialized")
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, self.mqttclientname)
+        self.client.user_data_set(kwargs)
+        self.client.on_connect = self.on_connect
+        self.client.connect(MQTT_BROKER)

@@ -83,6 +83,8 @@ class Airport(AirportComponent):
 
         super().__init__(**kwargs)
 
+    def on_child_connect(self):
+        """called by airportcomponent.on_connect"""
         self.log(f"Runways: {self.runways}")
         self.log(f"Gates: {self.gates}")
 
@@ -197,7 +199,7 @@ class Airport(AirportComponent):
         """Handle heartbeat messages to update gate state."""
         for gate_number, state in self.gates.items():
             if GateState(state) == GateState.FREE:
-                self.log(f"Gate {gate_number} is free, checking for planes.")
+                # self.log(f"Gate {gate_number} is free, checking for planes.")
 
                 if random.random() < 0.5:
                     if not self.assign_gate_for_departure(gate_number):
@@ -209,7 +211,7 @@ class Airport(AirportComponent):
         # assign runway
         for runway_number, state in self.runways.items():
             if RunwayState(state) == RunwayState.FREE:
-                self.log(f"Runway {runway_number} is free, checking for planes.")
+                # self.log(f"Runway {runway_number} is free, checking for planes.")
 
                 if random.random() < 0.5:
                     if not self.assign_runway_for_departure(runway_number):
