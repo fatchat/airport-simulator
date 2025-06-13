@@ -27,6 +27,19 @@ All components communicate via MQTT and use Redis for state persistence.
 docker build -t airport-simulator-base -f Dockerfile.base .
 ```
 
+2. Build other images as required:
+
+```bash
+docker build -t airport-simulator-base -f Dockerfile.base .
+docker build -t airport-simulator-airport -f Dockerfile.airport .
+docker build -t airport-simulator-runway -f Dockerfile.runway .
+docker build -t airport-simulator-gate -f Dockerfile.gate .
+docker build -t airport-simulator-sky -f Dockerfile.sky .
+docker build -t airport-simulator-dbwriter -f Dockerfile.dbwriter .
+docker build -t airport-simulator-heartbeat -f Dockerfile.heartbeat .
+docker build -t airport-simulator-airport-monitor-server -f Dockerfile.airport-monitor-server .
+```
+
 2. Start the core services:
 
 ```bash
