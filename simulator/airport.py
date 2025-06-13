@@ -83,6 +83,8 @@ class Airport(AirportComponent):
 
         super().__init__(**kwargs)
 
+    def on_child_connect(self):
+        """called by airportcomponent.on_connect"""
         self.log(f"Runways: {self.runways}")
         self.log(f"Gates: {self.gates}")
 

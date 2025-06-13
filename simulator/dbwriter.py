@@ -63,9 +63,16 @@ class DBWriter:
         self.verbose = kwargs.get("verbose", False)
 
         self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "dbwriter")
+        self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.connect(MQTT_BROKER)
-        self.mqtt_client.subscribe("events")
-        self.mqtt_client.message_callback_add("events", self.on_event)
+
+    def on_connect(self, mqtt_client, userdata, connect_flags, reason_code, properties):
+        """on connection to the broker"""
+        if reason_code == 0:
+            self.mqtt_client.subscribe("events")
+            self.mqtt_client.message_callback_add("events", self.on_event)
+        else:
+            raise RuntimeError("failed to connect to mqtt broker")
 
     def on_event(
         self,

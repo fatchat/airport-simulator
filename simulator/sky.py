@@ -42,6 +42,9 @@ class Sky(AirportComponent):
         """Key for Redis storage"""
         return "sky"
 
+    def on_child_connect(self):
+        """called by airportcomponent.on_connect"""
+
     def __init__(self, **kwargs):
         self.plane_queues: Dict[str, List[Plane]] = {}
         self.planes_flying: List[Plane] = []
