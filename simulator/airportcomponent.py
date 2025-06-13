@@ -97,6 +97,7 @@ class AirportComponent(ABC):
             self.error(f"received non-json message: [{payload}]")
             return
         if message["command"] == "quit":
+            self.log("Received quit message, disconnecting from mqtt broker")
             self.client.disconnect()
 
     @property
