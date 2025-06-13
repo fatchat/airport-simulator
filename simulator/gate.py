@@ -52,12 +52,12 @@ class Gate(AirportComponent):
     @property
     def mqttclientname(self):
         """Name of the MQTT client we will create"""
-        return f"Gate_{self.gate_number}"
+        return f"Airport_{self.airport}_Gate_{self.gate_number}"
 
     @property
     def loggername(self) -> str:
         """Name of the logger"""
-        return f"Gate {self.gate_number}"
+        return f"{self.airport} Gate {self.gate_number}"
 
     @property
     def redis_key(self) -> str:
