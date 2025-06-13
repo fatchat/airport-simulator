@@ -80,12 +80,16 @@ class PlaneGenerator:
 def main():
     """main"""
     parser = argparse.ArgumentParser(description="Flight generator")
-    parser.add_argument("--interval", type=float, help="Attempt frequency in seconds")
-    parser.add_argument("--prob", type=float, help="Probability of generating a flight")
+    parser.add_argument(
+        "--interval", type=float, help="Attempt frequency in seconds", default=1
+    )
+    parser.add_argument(
+        "--prob", type=float, help="Probability of generating a flight", default=0.5
+    )
     parser.add_argument(
         "--interactive", action="store_true", help="Press <Enter> to advance time"
     )
-    parser.add_argument("airports", nargs="+")
+    parser.add_argument("airports", nargs="+", required=True)
     args = parser.parse_args()
 
     airports = list(set(args.airports))
