@@ -89,7 +89,7 @@ def main():
     parser.add_argument(
         "--interactive", action="store_true", help="Press <Enter> to advance time"
     )
-    parser.add_argument("airports", nargs="+", required=True)
+    parser.add_argument("airports", nargs="+")
     args = parser.parse_args()
 
     airports = list(set(args.airports))
