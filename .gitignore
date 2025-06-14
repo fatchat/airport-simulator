@@ -17,3 +17,6 @@ wheels/
 
 # IP addresses
 machineip.txt
+
+# Credentials
+rdscreds
