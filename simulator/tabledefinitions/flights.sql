@@ -17,3 +17,5 @@ CREATE TABLE IF NOT EXISTS public.flights
 
 TABLESPACE pg_default;
 
+ALTER TABLE IF EXISTS public.flights
+    OWNER to airportsim;
