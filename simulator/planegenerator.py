@@ -20,6 +20,8 @@ class PlaneGenerator:
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "PlaneGenerator")
         self.client.on_connect = self.on_connect
+        self.client.message_callback_add("admin", self.on_admin)
+        self.client.message_callback_add("heartbeat", self.on_heartbeat)
         self.client.connect(MQTT_BROKER)
 
     def on_connect(
@@ -28,9 +30,7 @@ class PlaneGenerator:
         """called by broker upon connection"""
         print("connected to mqtt broker")
         self.client.subscribe("admin")
-        self.client.message_callback_add("admin", self.on_admin)
         self.client.subscribe("heartbeat")
-        self.client.message_callback_add("heartbeat", self.on_heartbeat)
 
     def on_heartbeat(self, mqtt_client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         """listen for heartbeats"""
