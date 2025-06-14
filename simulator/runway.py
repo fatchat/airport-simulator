@@ -141,7 +141,7 @@ class Runway(AirportComponent):
         if self.current_plane:
             self.error(
                 f"Plane {plane['plane_id']} arrived but runway "
-                + f"is occupied by {self.current_plane['plane_id']}",
+                + f"is occupied by {self.current_plane.plane_id}",
             )
             return
         if self.state != RunwayState.FREE:
