@@ -18,27 +18,23 @@ class PlaneGenerator:
         self.prob = prob
         self.airports = airports
 
-        self.ready = False
-        self.connect_failed = False
-
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "PlaneGenerator")
         self.client.on_connect = self.on_connect
-        self.client.on_connect_fail = self.on_connect_fail
+        self.client.message_callback_add("admin", self.on_admin)
+        self.client.message_callback_add("heartbeat", self.on_heartbeat)
         self.client.connect(MQTT_BROKER)
-        self.client.loop_start()
 
     def on_connect(
         self, mqtt_client: mqtt.Client, userdata, connect_flags, reason_code, properties
     ):
         """called by broker upon connection"""
-        print("connected!")
+        print("connected to mqtt broker")
         self.client.subscribe("admin")
-        self.client.message_callback_add("admin", self.on_admin)
-        self.ready = True
+        self.client.subscribe("heartbeat")
 
-    def on_connect_fail(self, mqtt_client: mqtt.Client, userdata):
-        """if connection to the mqtt broker fails"""
-        self.connect_failed = True
+    def on_heartbeat(self, mqtt_client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
+        """listen for heartbeats"""
+        self.attempt_to_generate_flight()
 
     def on_admin(
         self,
@@ -81,13 +77,7 @@ def main():
     """main"""
     parser = argparse.ArgumentParser(description="Flight generator")
     parser.add_argument(
-        "--interval", type=float, help="Attempt frequency in seconds", default=1
-    )
-    parser.add_argument(
         "--prob", type=float, help="Probability of generating a flight", default=0.5
-    )
-    parser.add_argument(
-        "--interactive", action="store_true", help="Press <Enter> to advance time"
     )
     parser.add_argument("airports", nargs="+")
     args = parser.parse_args()
@@ -101,20 +91,7 @@ def main():
     print("Airports are " + ",".join(airports))
 
     plane_generator = PlaneGenerator(args.prob, airports)
-
-    while not plane_generator.ready:
-        if plane_generator.connect_failed:
-            print("could not connect to mqtt broker")
-            return
-        print("waiting to connect to broker...")
-        time.sleep(1)
-
-    while True:
-        plane_generator.attempt_to_generate_flight()
-        if args.interactive:
-            input()
-        else:
-            time.sleep(args.interval)
+    plane_generator.client.loop_forever()
 
 
 if __name__ == "__main__":
