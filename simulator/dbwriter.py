@@ -59,6 +59,8 @@ class DBWriter:
 
     def __init__(self, **kwargs):
         self.engine = create_engine(CONNECTION_STRING)
+        with self.engine.connect():
+            print("Connection to database successful")
         self.starttime = kwargs["starttime"]
         self.verbose = kwargs.get("verbose", False)
 
